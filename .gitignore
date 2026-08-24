@@ -32,6 +32,7 @@ tools/strix/
 
 # Pacotes exportados; os fontes correspondentes são versionados
 outputs/*.zip
+outputs/radar-repositorio-git/
 
 # Sistema operacional e editores
 .DS_Store
