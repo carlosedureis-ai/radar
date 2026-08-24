@@ -83,19 +83,22 @@ export function recordListeningEvent(
     } else if (mapping.eligibility_status !== "eligible") {
       rejectionReason = `artist-${mapping.eligibility_status}`;
     } else {
-      const repeatCutoff = new Date(playedAt.getTime() - REPEAT_WINDOW_MS).toISOString();
+      const repeatWindowStart = new Date(playedAt.getTime() - REPEAT_WINDOW_MS).toISOString();
+      const repeatWindowEnd = new Date(playedAt.getTime() + REPEAT_WINDOW_MS).toISOString();
       const recentRepeat = database
         .prepare(`
           SELECT id FROM listening_events
-          WHERE user_id = ? AND artist_id = ? AND provider_track_id = ?
-            AND qualified = 1 AND played_at >= ? AND played_at < ?
+          WHERE user_id = ? AND artist_id = ? AND provider = ? AND provider_track_id = ?
+            AND qualified = 1 AND played_at >= ? AND played_at <= ? AND played_at <> ?
           LIMIT 1
         `)
         .get(
           userId,
           mapping.artist_id,
+          listen.provider,
           listen.providerTrackId,
-          repeatCutoff,
+          repeatWindowStart,
+          repeatWindowEnd,
           playedAt.toISOString(),
         );
       const dailyXp = database

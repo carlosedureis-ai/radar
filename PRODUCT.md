@@ -30,6 +30,7 @@ O usuário escuta em serviços externos, sincroniza o histórico com consentimen
 - Cartas e marcos geram peças compartilháveis e comparações entre amigos.
 - O produto não reproduz música e depende das permissões e limites das APIs conectadas.
 - Progressão deve limitar repetições artificiais, automação e compra de vantagem.
+- Uma identidade de provedor musical só pode alimentar uma conta Radar por vez.
 - Cartas são conquistas digitais, não ativos financeiros ou NFTs.
 
 ## Brand Commitments

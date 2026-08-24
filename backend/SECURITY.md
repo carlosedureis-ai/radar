@@ -14,10 +14,12 @@ terceiro. Pentest de staging ou produção exige autorização explícita e esco
 - Segredos de provedores criptografados com AES-256-GCM.
 - OAuth `state` de uso único, expiração curta e PKCE S256.
 - Validação de entrada com Zod, statements SQL parametrizados e corpo limitado a 32 KiB.
-- Helmet, CORS por allowlist, rate limiting e logs com campos sensíveis censurados.
+- Helmet, CORS por allowlist, rate limiting e logs sem query strings sensíveis.
 - Autorização por proprietário nas operações de carta e compartilhamento.
-- Deduplicação de escutas e registro dos motivos de rejeição.
+- Deduplicação de escutas independente da ordem de chegada e registro dos motivos de rejeição.
+- Uma identidade de provedor musical só pode pertencer a uma conta Radar.
 - Segredos de produção obrigatórios e nenhum fallback de desenvolvimento permitido em produção.
+- Segredos explícitos também são obrigatórios quando o servidor escuta fora do loopback.
 
 ## Modelo de ameaça inicial
 

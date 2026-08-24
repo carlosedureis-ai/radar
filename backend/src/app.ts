@@ -54,6 +54,11 @@ const listenQuerySchema = z.object({
   before: z.iso.datetime().optional(),
 });
 
+export function sanitizeRequestUrl(url: string): string {
+  const queryStart = url.indexOf("?");
+  return queryStart === -1 ? url : url.slice(0, queryStart);
+}
+
 function parse<T>(schema: z.ZodType<T>, value: unknown): T {
   return schema.parse(value);
 }
@@ -86,6 +91,16 @@ export async function createApp(options?: {
               "req.body.refreshToken",
               "res.headers.set-cookie",
             ],
+            serializers: {
+              req(request: FastifyRequest) {
+                return {
+                  method: request.method,
+                  url: sanitizeRequestUrl(request.url),
+                  host: request.hostname,
+                  remoteAddress: request.ip,
+                };
+              },
+            },
           },
     bodyLimit: 32 * 1024,
     genReqId: () => randomUUID(),

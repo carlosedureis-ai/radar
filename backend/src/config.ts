@@ -37,11 +37,20 @@ const developmentEncryptionKey = createHash("sha256")
   .update("radar-development-encryption-key")
   .digest();
 
+function isLoopbackHost(host: string): boolean {
+  return host === "127.0.0.1" || host === "::1" || host.toLowerCase() === "localhost";
+}
+
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
   const env = schema.parse(source);
 
   if (env.NODE_ENV === "production" && (!env.JWT_SECRET || !env.TOKEN_ENCRYPTION_KEY)) {
     throw new Error("JWT_SECRET and TOKEN_ENCRYPTION_KEY are required in production");
+  }
+  if (!isLoopbackHost(env.HOST) && (!env.JWT_SECRET || !env.TOKEN_ENCRYPTION_KEY)) {
+    throw new Error(
+      "JWT_SECRET and TOKEN_ENCRYPTION_KEY are required when HOST is not loopback",
+    );
   }
 
   let encryptionKey = developmentEncryptionKey;

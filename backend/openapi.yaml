@@ -109,6 +109,7 @@ paths:
       responses:
         "302": { description: Retorno ao aplicativo }
         "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
   /v1/music/spotify/sync:
     post:
       tags: [Music]

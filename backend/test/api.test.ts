@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createApp, type RadarBackend } from "../src/app.js";
-import type { AppConfig } from "../src/config.js";
+import { createApp, sanitizeRequestUrl, type RadarBackend } from "../src/app.js";
+import { loadConfig, type AppConfig } from "../src/config.js";
 import { createDatabase } from "../src/db.js";
 import { recordListeningEvent } from "../src/progression.js";
 
@@ -184,6 +184,49 @@ describe("Radar API", () => {
     expect(events[1]).toMatchObject({ qualified: 0, rejection_reason: "repeat-too-soon" });
   });
 
+  it("rejects rapid repeated tracks even when events arrive newest first", async () => {
+    const registration = await register();
+    const { providerArtistId } = seedEligibleArtist();
+    const newer = recordListeningEvent(backend.database, registration.user.id, {
+      provider: "spotify",
+      providerTrackId: "reverse-track",
+      providerArtistId,
+      playedAt: "2026-08-23T12:05:00.000Z",
+    });
+    const older = recordListeningEvent(backend.database, registration.user.id, {
+      provider: "spotify",
+      providerTrackId: "reverse-track",
+      providerArtistId,
+      playedAt: "2026-08-23T12:00:00.000Z",
+    });
+
+    expect(newer).toMatchObject({ status: "awarded", xpAwarded: 15 });
+    expect(older).toMatchObject({ status: "rejected", xpAwarded: 0, reason: "repeat-too-soon" });
+  });
+
+  it("prevents one provider identity from connecting to multiple Radar accounts", () => {
+    const now = new Date().toISOString();
+    for (const id of ["provider-owner-1", "provider-owner-2"]) {
+      backend.database
+        .prepare(`
+          INSERT INTO users(id, email, display_name, password_hash, password_salt, created_at)
+          VALUES (?, ?, ?, 'hash', 'salt', ?)
+        `)
+        .run(id, `${id}@example.com`, id, now);
+    }
+    const insertConnection = backend.database.prepare(`
+      INSERT INTO music_connections(
+        id, user_id, provider, provider_user_id, access_token_encrypted,
+        refresh_token_encrypted, token_expires_at, scopes, created_at, updated_at
+      ) VALUES (?, ?, 'spotify', 'same-provider-user', 'encrypted', 'encrypted', ?, '', ?, ?)
+    `);
+    insertConnection.run("connection-1", "provider-owner-1", now, now, now);
+
+    expect(() =>
+      insertConnection.run("connection-2", "provider-owner-2", now, now, now),
+    ).toThrow(/UNIQUE constraint failed/);
+  });
+
   it("prevents one user from sharing another user's card", async () => {
     const owner = await register("owner@example.com");
     const attacker = await register("attacker@example.com");
@@ -223,5 +266,20 @@ describe("Radar API", () => {
     });
     expect(response.statusCode).toBe(503);
     expect(response.json()).toMatchObject({ error: { code: "SPOTIFY_NOT_CONFIGURED" } });
+  });
+
+  it("removes query secrets from request URLs before logging", () => {
+    expect(
+      sanitizeRequestUrl(
+        "/v1/music/spotify/callback?code=secret-code&state=secret-state",
+      ),
+    ).toBe("/v1/music/spotify/callback");
+  });
+
+  it("requires explicit secrets when binding outside loopback", () => {
+    expect(() => loadConfig({ NODE_ENV: "development", HOST: "0.0.0.0" })).toThrow(
+      /required when HOST is not loopback/,
+    );
+    expect(() => loadConfig({ NODE_ENV: "development", HOST: "127.0.0.1" })).not.toThrow();
   });
 });

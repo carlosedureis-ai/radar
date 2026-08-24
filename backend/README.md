@@ -12,6 +12,7 @@ compartilhamentos públicos.
 - Spotify OAuth 2.0 com PKCE e escopo mínimo para histórico recente.
 - Ingestão idempotente de escutas e trilha de auditoria para eventos rejeitados.
 - Bônus provisório para artistas emergentes, janela antirrepetição e teto diário.
+- Uma mesma identidade Spotify não pode alimentar múltiplas contas Radar.
 - Cartas, nível da conta e peças compartilháveis com proteção contra IDOR.
 - SQLite no MVP local, isolado atrás da camada de acesso a dados.
 - Contrato OpenAPI para desenvolvimento e pentest.
@@ -89,6 +90,7 @@ As instruções estão em `../docs/SECURITY-SCANNING.md`; nenhum token deve ser 
 - Trocar sincronização manual por fila agendada com backoff e jitter.
 - Implementar revogação no provedor quando ele disponibilizar esse fluxo.
 - Criar painel administrativo protegido para curadoria e mapeamento de artistas.
+- Implementar verificação de e-mail antes da abertura de cadastro público.
 - Definir política de retenção, exportação e exclusão de dados.
 - Aprovar os valores definitivos de XP e regras de elegibilidade.
 - Executar Strix em staging autorizado e corrigir achados antes da abertura pública.

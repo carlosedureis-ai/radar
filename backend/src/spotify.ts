@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { AppConfig } from "./config.js";
 import type { SqliteDatabase } from "./db.js";
+import { inTransaction } from "./db.js";
 import { AppError } from "./errors.js";
 import { recordListeningEvent, type ListenResult } from "./progression.js";
 import {
@@ -151,37 +152,54 @@ export async function completeSpotifyAuthorization(
       code_verifier: decryptSecret(oauthState.code_verifier_encrypted, config.encryptionKey),
     }),
   );
-  if (!token.refresh_token) {
+  const providerRefreshToken = token.refresh_token;
+  if (!providerRefreshToken) {
     throw new AppError(502, "SPOTIFY_REFRESH_MISSING", "Spotify não forneceu sessão renovável");
   }
   const profile = await spotifyGet<{ id: string }>("/me", token.access_token);
   const now = new Date();
-  database
-    .prepare(`
-      INSERT INTO music_connections(
-        id, user_id, provider, provider_user_id, access_token_encrypted,
-        refresh_token_encrypted, token_expires_at, scopes, status, created_at, updated_at
-      ) VALUES (?, ?, 'spotify', ?, ?, ?, ?, ?, 'active', ?, ?)
-      ON CONFLICT(user_id, provider) DO UPDATE SET
-        provider_user_id = excluded.provider_user_id,
-        access_token_encrypted = excluded.access_token_encrypted,
-        refresh_token_encrypted = excluded.refresh_token_encrypted,
-        token_expires_at = excluded.token_expires_at,
-        scopes = excluded.scopes,
-        status = 'active',
-        updated_at = excluded.updated_at
-    `)
-    .run(
-      randomUUID(),
-      oauthState.user_id,
-      profile.id,
-      encryptSecret(token.access_token, config.encryptionKey),
-      encryptSecret(token.refresh_token, config.encryptionKey),
-      new Date(now.getTime() + token.expires_in * 1000).toISOString(),
-      token.scope,
-      now.toISOString(),
-      now.toISOString(),
-    );
+  inTransaction(database, () => {
+    const existingOwner = database
+      .prepare(`
+        SELECT user_id FROM music_connections
+        WHERE provider = 'spotify' AND provider_user_id = ? AND user_id <> ?
+      `)
+      .get(profile.id, oauthState.user_id);
+    if (existingOwner) {
+      throw new AppError(
+        409,
+        "PROVIDER_ACCOUNT_IN_USE",
+        "Esta conta Spotify já está conectada a outra conta Radar",
+      );
+    }
+
+    database
+      .prepare(`
+        INSERT INTO music_connections(
+          id, user_id, provider, provider_user_id, access_token_encrypted,
+          refresh_token_encrypted, token_expires_at, scopes, status, created_at, updated_at
+        ) VALUES (?, ?, 'spotify', ?, ?, ?, ?, ?, 'active', ?, ?)
+        ON CONFLICT(user_id, provider) DO UPDATE SET
+          provider_user_id = excluded.provider_user_id,
+          access_token_encrypted = excluded.access_token_encrypted,
+          refresh_token_encrypted = excluded.refresh_token_encrypted,
+          token_expires_at = excluded.token_expires_at,
+          scopes = excluded.scopes,
+          status = 'active',
+          updated_at = excluded.updated_at
+      `)
+      .run(
+        randomUUID(),
+        oauthState.user_id,
+        profile.id,
+        encryptSecret(token.access_token, config.encryptionKey),
+        encryptSecret(providerRefreshToken, config.encryptionKey),
+        new Date(now.getTime() + token.expires_in * 1000).toISOString(),
+        token.scope,
+        now.toISOString(),
+        now.toISOString(),
+      );
+  });
   return { userId: oauthState.user_id, provider: "spotify" };
 }
 
@@ -242,7 +260,10 @@ export async function syncSpotify(
     token,
   );
   const results: ListenResult[] = [];
-  for (const item of recent.items) {
+  const chronologicalItems = [...recent.items].sort(
+    (left, right) => new Date(left.played_at).getTime() - new Date(right.played_at).getTime(),
+  );
+  for (const item of chronologicalItems) {
     const artistId = item.track.artists[0]?.id;
     if (!item.track.id || !artistId) continue;
     results.push(
@@ -254,7 +275,7 @@ export async function syncSpotify(
       }),
     );
   }
-  const cursor = recent.cursors?.after ?? recent.items.at(-1)?.played_at;
+  const cursor = recent.cursors?.after ?? chronologicalItems.at(-1)?.played_at;
   if (cursor) {
     const cursorValue = /^\d+$/.test(cursor) ? cursor : String(new Date(cursor).getTime());
     database

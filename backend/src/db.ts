@@ -65,6 +65,9 @@ export function migrate(database: SqliteDatabase): void {
       updated_at TEXT NOT NULL,
       UNIQUE(user_id, provider)
     );
+    CREATE UNIQUE INDEX IF NOT EXISTS music_connections_provider_user_unique_idx
+      ON music_connections(provider, provider_user_id)
+      WHERE provider_user_id IS NOT NULL;
 
     CREATE TABLE IF NOT EXISTS artists (
       id TEXT PRIMARY KEY,
