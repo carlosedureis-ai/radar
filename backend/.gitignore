@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+coverage/
+data/*.sqlite
+data/*.sqlite-shm
+data/*.sqlite-wal
+.env
+strix_runs/

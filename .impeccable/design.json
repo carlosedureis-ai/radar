@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-23T23:03:23.4318157-03:00",
+  "title": "Design System: Radar",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta Estrutural",
+        "canonical": "#181a20",
+        "tonalRamp": ["oklch(15% 0.018 275)", "oklch(25% 0.018 275)", "oklch(35% 0.018 275)", "oklch(48% 0.018 275)", "oklch(60% 0.018 275)", "oklch(72% 0.018 275)", "oklch(84% 0.018 275)", "oklch(95% 0.018 275)"]
+      },
+      "bone": {
+        "role": "neutral",
+        "displayName": "Marfim de Base",
+        "canonical": "#f4f1e8",
+        "tonalRamp": ["oklch(15% 0.018 95)", "oklch(28% 0.018 95)", "oklch(42% 0.018 95)", "oklch(56% 0.018 95)", "oklch(68% 0.018 95)", "oklch(79% 0.018 95)", "oklch(89% 0.018 95)", "oklch(95% 0.018 95)"]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Papel Claro",
+        "canonical": "#fffdf7",
+        "tonalRamp": ["oklch(15% 0.012 95)", "oklch(28% 0.012 95)", "oklch(42% 0.012 95)", "oklch(56% 0.012 95)", "oklch(68% 0.012 95)", "oklch(79% 0.012 95)", "oklch(89% 0.012 95)", "oklch(95% 0.012 95)"]
+      },
+      "ultramarine": {
+        "role": "primary",
+        "displayName": "Ultramarino de Progresso",
+        "canonical": "#4255ff",
+        "tonalRamp": ["oklch(15% 0.26 272)", "oklch(26% 0.26 272)", "oklch(38% 0.26 272)", "oklch(50% 0.26 272)", "oklch(62% 0.26 272)", "oklch(74% 0.22 272)", "oklch(85% 0.14 272)", "oklch(95% 0.05 272)"]
+      },
+      "coral": {
+        "role": "secondary",
+        "displayName": "Coral Social",
+        "canonical": "#ff5b3d",
+        "tonalRamp": ["oklch(15% 0.22 34)", "oklch(27% 0.22 34)", "oklch(39% 0.22 34)", "oklch(51% 0.22 34)", "oklch(63% 0.22 34)", "oklch(75% 0.18 34)", "oklch(86% 0.11 34)", "oklch(95% 0.04 34)"]
+      },
+      "chartreuse": {
+        "role": "tertiary",
+        "displayName": "Chartreuse de Conquista",
+        "canonical": "#d8ff52",
+        "tonalRamp": ["oklch(15% 0.19 121)", "oklch(27% 0.19 121)", "oklch(39% 0.19 121)", "oklch(51% 0.19 121)", "oklch(63% 0.19 121)", "oklch(75% 0.18 121)", "oklch(86% 0.14 121)", "oklch(95% 0.06 121)"]
+      },
+      "sky": {
+        "role": "tertiary",
+        "displayName": "Azul Descoberta",
+        "canonical": "#8fc8ff",
+        "tonalRamp": ["oklch(15% 0.12 246)", "oklch(27% 0.12 246)", "oklch(39% 0.12 246)", "oklch(51% 0.12 246)", "oklch(63% 0.12 246)", "oklch(75% 0.11 246)", "oklch(86% 0.08 246)", "oklch(95% 0.03 246)"]
+      },
+      "success": {
+        "role": "success",
+        "displayName": "Verde de Sucesso",
+        "canonical": "#16834b",
+        "tonalRamp": ["oklch(15% 0.15 151)", "oklch(27% 0.15 151)", "oklch(39% 0.15 151)", "oklch(51% 0.15 151)", "oklch(63% 0.14 151)", "oklch(75% 0.11 151)", "oklch(86% 0.07 151)", "oklch(95% 0.03 151)"]
+      },
+      "warning": {
+        "role": "warning",
+        "displayName": "Âmbar de Atenção",
+        "canonical": "#a44d00",
+        "tonalRamp": ["oklch(15% 0.17 56)", "oklch(27% 0.17 56)", "oklch(39% 0.17 56)", "oklch(51% 0.17 56)", "oklch(63% 0.15 56)", "oklch(75% 0.11 56)", "oklch(86% 0.07 56)", "oklch(95% 0.03 56)"]
+      },
+      "danger": {
+        "role": "danger",
+        "displayName": "Vermelho de Erro",
+        "canonical": "#bb261d",
+        "tonalRamp": ["oklch(15% 0.2 29)", "oklch(27% 0.2 29)", "oklch(39% 0.2 29)", "oklch(51% 0.2 29)", "oklch(63% 0.17 29)", "oklch(75% 0.12 29)", "oklch(86% 0.07 29)", "oklch(95% 0.03 29)"]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Tinta Atenuada",
+        "canonical": "#51545d",
+        "tonalRamp": ["oklch(15% 0.018 270)", "oklch(27% 0.018 270)", "oklch(39% 0.018 270)", "oklch(51% 0.018 270)", "oklch(63% 0.018 270)", "oklch(75% 0.018 270)", "oklch(86% 0.014 270)", "oklch(95% 0.008 270)"]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Linha de Impressão",
+        "canonical": "rgba(24, 26, 32, 0.18)",
+        "tonalRamp": ["oklch(15% 0.018 275 / 0.18)", "oklch(27% 0.018 275 / 0.18)", "oklch(39% 0.018 275 / 0.18)", "oklch(51% 0.018 275 / 0.18)", "oklch(63% 0.018 275 / 0.18)", "oklch(75% 0.018 275 / 0.18)", "oklch(86% 0.014 275 / 0.18)", "oklch(95% 0.008 275 / 0.18)"]
+      },
+      "acetate": {
+        "role": "neutral",
+        "displayName": "Acetato Translúcido",
+        "canonical": "rgba(255, 253, 247, 0.78)",
+        "tonalRamp": ["oklch(15% 0.012 95 / 0.78)", "oklch(27% 0.012 95 / 0.78)", "oklch(39% 0.012 95 / 0.78)", "oklch(51% 0.012 95 / 0.78)", "oklch(63% 0.012 95 / 0.78)", "oklch(75% 0.012 95 / 0.78)", "oklch(86% 0.01 95 / 0.78)", "oklch(95% 0.006 95 / 0.78)"]
+      },
+      "white": {
+        "role": "neutral",
+        "displayName": "Branco Direto",
+        "canonical": "#ffffff",
+        "tonalRamp": ["oklch(15% 0 0)", "oklch(27% 0 0)", "oklch(39% 0 0)", "oklch(51% 0 0)", "oklch(63% 0 0)", "oklch(75% 0 0)", "oklch(86% 0 0)", "oklch(95% 0 0)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Identidade Radar e chamadas heroicas de poucas palavras." },
+      "headline": { "displayName": "Headline", "purpose": "Títulos editoriais de seção." },
+      "title": { "displayName": "Title", "purpose": "Nomes de níveis e títulos compactos de cartas." },
+      "body": { "displayName": "Body", "purpose": "Leitura funcional, instruções e explicações." },
+      "label": { "displayName": "Label", "purpose": "Metadados, versões e legendas compactas." },
+      "action": { "displayName": "Action", "purpose": "Botões, abas e controles de resposta imediata." }
+    },
+    "shadows": [
+      { "name": "card-structural", "value": "0 14px 36px rgba(24, 26, 32, 0.18), 0 3px 8px rgba(24, 26, 32, 0.1)", "purpose": "Cartões principais, folhas de conta e pranchas claras sobre marfim." },
+      { "name": "card-elevated", "value": "0 18px 32px rgba(0, 0, 0, 0.24)", "purpose": "Cartas de artista sobre fundo de tinta." },
+      { "name": "layer-deep", "value": "0 18px 45px rgba(0, 0, 0, 0.3)", "purpose": "Acetatos e folhas que se separam durante evolução." },
+      { "name": "art-foreground", "value": "drop-shadow(0 26px 32px rgba(24, 26, 32, 0.24))", "purpose": "Recorte aprovado da carta no primeiro viewport." }
+    ],
+    "motion": [
+      { "name": "fast", "value": "120ms", "purpose": "Resposta de hover, barra de progresso e estados simples." },
+      { "name": "layer", "value": "180ms", "purpose": "Entrada e reposicionamento de uma nova camada física." },
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Easing padrão para respostas rápidas que assentam sem oscilar." },
+      { "name": "layer-step", "value": "steps(2, end)", "purpose": "Dois passos mecânicos para a evolução material de uma camada." },
+      { "name": "reduced-motion", "value": "instant", "purpose": "Troca de estado sem translação ou transição quando a preferência reduzida está ativa." }
+    ],
+    "breakpoints": [
+      { "name": "compact", "value": "560px" },
+      { "name": "stacked", "value": "900px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ação principal de alto contraste; o ultramarino aparece como resposta, não como preenchimento permanente.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Compartilhar carta</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 18px;border:1px solid transparent;border-radius:var(--radar-radius-control,12px);background:var(--radar-ink,#181a20);color:var(--radar-bone,#f4f1e8);font:700 1rem/1 var(--radar-font-ui,system-ui,sans-serif);cursor:pointer;transition:transform var(--radar-motion-fast,120ms) var(--radar-ease-out,cubic-bezier(.16,1,.3,1)),background var(--radar-motion-fast,120ms) var(--radar-ease-out,cubic-bezier(.16,1,.3,1))}.ds-btn-primary:hover{background:var(--radar-ultramarine,#4255ff);transform:translateY(-2px)}.ds-btn-primary:active{transform:translateY(0)}.ds-btn-primary:focus-visible{outline:3px solid var(--radar-ultramarine,#4255ff);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-btn-primary{transition:none}.ds-btn-primary:hover{transform:none}}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Ação secundária transparente com contorno direto e a mesma área tátil do botão principal.",
+      "html": "<button class=\"ds-btn-secondary\" type=\"button\">Ver coleção</button>",
+      "css": ".ds-btn-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 18px;border:1px solid var(--radar-ink,#181a20);border-radius:var(--radar-radius-control,12px);background:transparent;color:var(--radar-ink,#181a20);font:700 1rem/1 var(--radar-font-ui,system-ui,sans-serif);cursor:pointer;transition:transform var(--radar-motion-fast,120ms) var(--radar-ease-out,cubic-bezier(.16,1,.3,1))}.ds-btn-secondary:hover{transform:translateY(-2px)}.ds-btn-secondary:active{transform:translateY(0)}.ds-btn-secondary:focus-visible{outline:3px solid var(--radar-ultramarine,#4255ff);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-btn-secondary{transition:none}.ds-btn-secondary:hover{transform:none}}"
+    },
+    {
+      "name": "Top Navigation",
+      "kind": "nav",
+      "description": "Barra editorial sticky com marca estável, links curtos e versão em pílula.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Seções do guia\"><a class=\"ds-nav-brand\" href=\"#\"><svg viewBox=\"0 0 96 96\" aria-hidden=\"true\"><g fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\"><circle cx=\"48\" cy=\"48\" r=\"36\" pathLength=\"100\" stroke-dasharray=\"23 8 30 7 20 12\" transform=\"rotate(-20 48 48)\"/><circle cx=\"48\" cy=\"48\" r=\"24\" pathLength=\"100\" stroke-dasharray=\"28 10 34 9 11 8\" transform=\"rotate(12 48 48)\"/><circle cx=\"48\" cy=\"48\" r=\"13\" pathLength=\"100\" stroke-dasharray=\"46 18 22 14\" transform=\"rotate(-48 48 48)\"/></g><circle cx=\"48\" cy=\"48\" r=\"6\" fill=\"currentColor\"/><path d=\"M52 44 76 21h10L57 50Z\" fill=\"#d8ff52\"/></svg><strong>RADAR</strong></a><div class=\"ds-nav-links\"><a href=\"#\">Marca</a><a href=\"#\">Cartas</a><span>IDENTIDADE 1.0</span></div></nav>",
+      "css": ".ds-nav{min-height:72px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;gap:24px;background:rgba(244,241,232,.92);color:var(--radar-ink,#181a20);border-bottom:1px solid var(--radar-line,rgba(24,26,32,.18));backdrop-filter:blur(14px);font-family:var(--radar-font-ui,system-ui,sans-serif)}.ds-nav a{color:inherit;text-decoration:none}.ds-nav-brand{display:flex;align-items:center;gap:11px}.ds-nav-brand svg{width:42px;height:42px}.ds-nav-brand strong{font:34px/1 var(--radar-font-display,'Arial Narrow',sans-serif);letter-spacing:.03em}.ds-nav-links{display:flex;align-items:center;gap:22px;font-size:.94rem;font-weight:600}.ds-nav-links span{padding:7px 10px;border:1px solid currentColor;border-radius:999px;font-size:.75rem;font-weight:700;letter-spacing:.04em}.ds-nav a:focus-visible{outline:3px solid var(--radar-ultramarine,#4255ff);outline-offset:4px}"
+    },
+    {
+      "name": "Layer Tabs",
+      "kind": "chip",
+      "refersTo": "tab-progress",
+      "description": "Abas cromáticas de base reta que classificam camadas de progresso sem parecer filtros genéricos.",
+      "html": "<div class=\"ds-tabs\" aria-label=\"Camadas da carta\"><span class=\"ds-tab ds-tab-blue\">Nível</span><span class=\"ds-tab ds-tab-coral\">Escutas</span><span class=\"ds-tab ds-tab-lime\">Conquista</span></div>",
+      "css": ".ds-tabs{display:flex;flex-wrap:wrap;gap:12px;font-family:var(--radar-font-ui,system-ui,sans-serif)}.ds-tab{padding:10px 14px;border-radius:10px 10px 0 0;font-weight:700}.ds-tab-blue{background:var(--radar-ultramarine,#4255ff);color:#fff}.ds-tab-coral{background:var(--radar-coral,#ff5b3d);color:var(--radar-ink,#181a20)}.ds-tab-lime{background:var(--radar-chartreuse,#d8ff52);color:var(--radar-ink,#181a20)}"
+    },
+    {
+      "name": "Artist Progress Card",
+      "kind": "card",
+      "refersTo": "artist-card",
+      "description": "Carta material cuja faixa, altura e conteúdo acumulam progresso sem transformar raridade em compra.",
+      "html": "<article class=\"ds-artist-card\"><span class=\"ds-level\">4</span><div class=\"ds-art\"><svg viewBox=\"0 0 96 96\" aria-hidden=\"true\"><g fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\"><circle cx=\"48\" cy=\"48\" r=\"36\" pathLength=\"100\" stroke-dasharray=\"23 8 30 7 20 12\" transform=\"rotate(-20 48 48)\"/><circle cx=\"48\" cy=\"48\" r=\"24\" pathLength=\"100\" stroke-dasharray=\"28 10 34 9 11 8\" transform=\"rotate(12 48 48)\"/><circle cx=\"48\" cy=\"48\" r=\"13\" pathLength=\"100\" stroke-dasharray=\"46 18 22 14\" transform=\"rotate(-48 48 48)\"/></g><circle cx=\"48\" cy=\"48\" r=\"6\" fill=\"currentColor\"/></svg></div><div><strong>ESPECIALISTA</strong><small>Selos e eras · exemplo: 1.500 XP</small></div></article>",
+      "css": ".ds-artist-card{position:relative;width:240px;min-height:420px;padding:18px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;border-radius:var(--radar-radius-card,16px);background:var(--radar-bone,#f4f1e8);color:var(--radar-ink,#181a20);box-shadow:0 18px 32px rgba(0,0,0,.24);font-family:var(--radar-font-ui,system-ui,sans-serif)}.ds-artist-card:before{content:'';position:absolute;inset:0 0 auto;height:10px;background:var(--radar-chartreuse,#d8ff52)}.ds-level{font:7rem/1 var(--radar-font-display,'Arial Narrow',sans-serif)}.ds-art{height:150px;border-radius:12px;background:linear-gradient(135deg,var(--radar-sky,#8fc8ff),var(--radar-chartreuse,#d8ff52));display:grid;place-items:center}.ds-art svg{width:60px;height:60px}.ds-artist-card strong{display:block;font:2rem/1 var(--radar-font-display,'Arial Narrow',sans-serif)}.ds-artist-card small{display:block;margin-top:8px;color:var(--radar-ink-muted,#51545d);font-weight:600}"
+    },
+    {
+      "name": "Account Progress",
+      "kind": "custom",
+      "refersTo": "account-sheet",
+      "description": "Folha de conta em camadas com número dominante, progresso explícito e selos de especialização.",
+      "html": "<section class=\"ds-account\"><span class=\"ds-account-meta\">CARLOS · CURADOR</span><div class=\"ds-account-level\"><strong>24</strong><span>NÍVEL DA CONTA</span></div><div class=\"ds-progress\" role=\"progressbar\" aria-label=\"68% para o próximo nível\" aria-valuenow=\"68\" aria-valuemin=\"0\" aria-valuemax=\"100\"><span></span></div><p>7.450 / 11.000 XP</p><div class=\"ds-badges\"><span>Rap 18</span><span>Pioneiro ×14</span><span>Curador</span></div></section>",
+      "css": ".ds-account{position:relative;min-height:360px;padding:32px;overflow:hidden;border-radius:18px;background:var(--radar-paper,#fffdf7);color:var(--radar-ink,#181a20);box-shadow:var(--radar-shadow-card,0 14px 36px rgba(24,26,32,.18),0 3px 8px rgba(24,26,32,.1));font-family:var(--radar-font-ui,system-ui,sans-serif)}.ds-account:before,.ds-account:after{content:'';position:absolute;width:70%;height:70%;right:-24%;top:18%;border-radius:18px;transform:rotate(9deg);background:var(--radar-coral,#ff5b3d)}.ds-account:after{right:-14%;top:13%;transform:rotate(4deg);background:var(--radar-ultramarine,#4255ff)}.ds-account>*{position:relative;z-index:1}.ds-account-meta{font-size:.78rem;font-weight:700;letter-spacing:.08em}.ds-account-level{margin:22px 0;display:flex;align-items:flex-end;gap:18px}.ds-account-level strong{font:7rem/1 var(--radar-font-display,'Arial Narrow',sans-serif)}.ds-account-level span{padding-bottom:12px;font-weight:700}.ds-progress{height:14px;overflow:hidden;border-radius:999px;background:#d9d7d0}.ds-progress span{display:block;width:68%;height:100%;background:var(--radar-ultramarine,#4255ff)}.ds-account p{font-variant-numeric:tabular-nums}.ds-badges{display:flex;flex-wrap:wrap;gap:10px}.ds-badges span{padding:9px 12px;border-radius:999px;background:var(--radar-chartreuse,#d8ff52);font-weight:700}.ds-badges span:nth-child(2){background:var(--radar-coral,#ff5b3d)}.ds-badges span:nth-child(3){background:var(--radar-sky,#8fc8ff)}"
+    },
+    {
+      "name": "Activity List",
+      "kind": "custom",
+      "description": "Lista de atividade invertida com marcadores semânticos, texto direto e tempo tabular.",
+      "html": "<div class=\"ds-activity\"><div class=\"ds-status\"><i></i><span>Ana evoluiu LINA MAR</span><time>2 h</time></div><div class=\"ds-status ds-status-social\"><i></i><span>João completou um álbum</span><time>5 h</time></div><div class=\"ds-status ds-status-share\"><i></i><span>Bia compartilhou uma carta</span><time>ontem</time></div></div>",
+      "css": ".ds-activity{padding:28px;border-radius:20px;background:var(--radar-ink,#181a20);color:var(--radar-bone,#f4f1e8);font-family:var(--radar-font-ui,system-ui,sans-serif)}.ds-status{display:grid;grid-template-columns:12px 1fr auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid rgba(244,241,232,.2)}.ds-status i{width:10px;height:10px;border-radius:50%;background:var(--radar-chartreuse,#d8ff52)}.ds-status-social i{background:var(--radar-coral,#ff5b3d)}.ds-status-share i{background:var(--radar-sky,#8fc8ff)}.ds-status time{color:rgba(244,241,232,.62);font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Share Preview",
+      "kind": "card",
+      "description": "Peça compartilhável que converte um marco de conta em mensagem editorial curta.",
+      "html": "<article class=\"ds-share\"><span>CARTÃO COMPARTILHÁVEL</span><strong>SUBI PARA O NÍVEL 24.</strong><small>Ouça lá. Evolua aqui.</small></article>",
+      "css": ".ds-share{width:320px;min-height:200px;padding:28px;display:flex;flex-direction:column;justify-content:space-between;border-radius:var(--radar-radius-card,16px);background:var(--radar-ultramarine,#4255ff);color:#fff;font-family:var(--radar-font-ui,system-ui,sans-serif)}.ds-share span{font-size:.78rem;font-weight:700;letter-spacing:.08em}.ds-share strong{max-width:8ch;font:3.6rem/.95 var(--radar-font-display,'Arial Narrow',sans-serif)}.ds-share small{font-size:1rem}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Camadas Vivas",
+    "overview": "Radar transforma escuta externa em progresso que parece físico, permanente e digno de compartilhar. O mundo visual é direto, inclusivo, tátil e editorial: marfim e tinta criam o plano de leitura, enquanto ultramarino, coral e chartreuse acrescentam ação, sociabilidade e conquista como folhas coloridas que entram na composição.\n\nA profundidade é estrutural. Acetatos translúcidos, abas perfuradas, cartões sobrepostos e sombras macias tornam a evolução visível sem recorrer a brilho tecnológico genérico. A marca-mãe permanece estável e legível; artistas, cartas e coleções trazem a personalização, para que públicos e gêneros musicais diversos caibam no mesmo sistema.\n\nO sistema rejeita interface de player escuro com neon, glassmorphism, linguagem de cassino ou gacha e qualquer enquadramento de cartas como NFT ou ativo financeiro. A sequência narrativa durável é: promessa de marca, progresso material da carta de artista, progresso da conta e componentes reutilizáveis que culminam em peças compartilháveis.",
+    "keyCharacteristics": [
+      "Contraste editorial de marfim e tinta com acentos cromáticos de função clara.",
+      "Progresso representado por camadas, abas, selos e profundidade material.",
+      "Tipografia de display condensada e direta combinada a uma interface hiperlegível.",
+      "Componentes táteis e confiantes, com estados rápidos e legíveis.",
+      "Personalização concentrada no conteúdo de artistas, cartas e coleções."
+    ],
+    "rules": [
+      { "name": "The Color Has a Job Rule", "body": "Ultramarino é ação e progresso; coral é social; chartreuse é conquista ou novidade. Não troque essas funções por variedade decorativa.", "section": "colors" },
+      { "name": "The Stable Core Rule", "body": "Marfim e tinta sustentam a marca; cores de artistas entram nas imagens e camadas secundárias sem substituir o núcleo Radar.", "section": "colors" },
+      { "name": "The Short Display Rule", "body": "Radar Display serve a nomes, níveis, números e frases curtas; nunca a parágrafos ou instruções longas.", "section": "typography" },
+      { "name": "The Open Reading Rule", "body": "Toda leitura funcional usa Radar UI e preserva diferenciação clara entre caracteres, pesos e estados.", "section": "typography" },
+      { "name": "The One Dominant Layer Rule", "body": "Cada viewport ou módulo escolhe uma camada dominante; as demais dão contexto e profundidade, sem competir por escala.", "section": "layout" },
+      { "name": "The Structural Shadow Rule", "body": "Use sombra apenas para explicar separação física entre planos; não use glow, halo ou névoa tecnológica.", "section": "elevation" },
+      { "name": "The Progress Adds Matter Rule", "body": "A evolução acrescenta camada, aba, selo ou conteúdo antes de acrescentar intensidade visual abstrata.", "section": "elevation" },
+      { "name": "The Shape Signals Function Rule", "body": "Retângulo macio é controle, cartão é conteúdo, pílula é estado compacto e aba é uma categoria ou camada de progresso.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do faça marfim e tinta sustentarem a leitura antes de adicionar os acentos cromáticos.",
+      "Do represente progresso com matéria visível: camadas, abas, selos, conteúdo e profundidade.",
+      "Do mantenha a marca Radar estável enquanto artistas e coleções trazem diversidade visual.",
+      "Do use Radar UI em toda leitura funcional e Radar Display apenas em mensagens curtas e dominantes.",
+      "Do acompanhe cor e movimento com texto, forma, estado acessível e alternativa para movimento reduzido.",
+      "Do trate cartas e marcos como histórias pessoais compartilháveis, não como objetos de especulação."
+    ],
+    "donts": [
+      "Don't transforme Radar em uma interface de player escuro com neon.",
+      "Don't use glassmorphism como material genérico; transparência existe apenas quando funciona como acetato e revela uma camada real.",
+      "Don't use códigos visuais de cassino, gacha, loot box ou recompensa comprada.",
+      "Don't enquadre cartas como NFT, investimento ou ativo financeiro.",
+      "Don't deixe sombras, rotações ou cores de artistas comprometerem legibilidade, contraste ou hierarquia.",
+      "Don't infantilize a interface nem presuma familiaridade prévia com jogos."
+    ]
+  }
+}

@@ -1,0 +1,231 @@
+openapi: 3.1.0
+info:
+  title: Radar Backend API
+  version: 0.1.0
+  description: API MVP para escutas externas, cartas de artistas e progressão do ouvinte.
+servers:
+  - url: http://127.0.0.1:3333
+    description: Ambiente local autorizado
+tags:
+  - name: Auth
+  - name: Music
+  - name: Progression
+  - name: Social
+paths:
+  /health:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: Serviço disponível
+  /v1/auth/register:
+    post:
+      tags: [Auth]
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201": { description: Conta criada }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200": { description: Sessão criada }
+        "401": { $ref: "#/components/responses/Error" }
+  /v1/auth/refresh:
+    post:
+      tags: [Auth]
+      operationId: refreshSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshInput"
+      responses:
+        "200": { description: Sessão rotacionada }
+        "401": { $ref: "#/components/responses/Error" }
+  /v1/auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshInput"
+      responses:
+        "204": { description: Sessão revogada }
+  /v1/me:
+    get:
+      tags: [Auth]
+      operationId: getMe
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Perfil e nível da conta }
+        "401": { $ref: "#/components/responses/Error" }
+  /v1/music/connections:
+    get:
+      tags: [Music]
+      operationId: listMusicConnections
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Conexões autorizadas }
+  /v1/music/spotify/authorize:
+    post:
+      tags: [Music]
+      operationId: authorizeSpotify
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: URL OAuth com PKCE }
+        "503": { $ref: "#/components/responses/Error" }
+  /v1/music/spotify/callback:
+    get:
+      tags: [Music]
+      operationId: spotifyCallback
+      parameters:
+        - in: query
+          name: code
+          required: true
+          schema: { type: string }
+        - in: query
+          name: state
+          required: true
+          schema: { type: string }
+      responses:
+        "302": { description: Retorno ao aplicativo }
+        "400": { $ref: "#/components/responses/Error" }
+  /v1/music/spotify/sync:
+    post:
+      tags: [Music]
+      operationId: syncSpotify
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Escutas sincronizadas }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/music/connections/{provider}:
+    delete:
+      tags: [Music]
+      operationId: disconnectProvider
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema: { type: string, enum: [spotify, apple, lastfm] }
+      responses:
+        "204": { description: Conexão removida }
+        "404": { $ref: "#/components/responses/Error" }
+  /v1/listens:
+    get:
+      tags: [Music]
+      operationId: listListeningEvents
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 30 }
+        - in: query
+          name: before
+          schema: { type: string, format: date-time }
+      responses:
+        "200": { description: Histórico normalizado }
+  /v1/cards:
+    get:
+      tags: [Progression]
+      operationId: listCards
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Cartas do usuário autenticado }
+  /v1/progression:
+    get:
+      tags: [Progression]
+      operationId: getProgression
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Conta e regras provisórias }
+  /v1/cards/{artistId}/share:
+    post:
+      tags: [Social]
+      operationId: shareCard
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: artistId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "201": { description: Snapshot compartilhável criado }
+        "404": { $ref: "#/components/responses/Error" }
+  /v1/shares/{token}:
+    get:
+      tags: [Social]
+      operationId: getPublicShare
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Snapshot público sem dados privados }
+        "404": { $ref: "#/components/responses/Error" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    RegisterInput:
+      type: object
+      additionalProperties: false
+      required: [email, displayName, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        displayName: { type: string, minLength: 2, maxLength: 60 }
+        password: { type: string, minLength: 12, maxLength: 128 }
+    LoginInput:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    RefreshInput:
+      type: object
+      additionalProperties: false
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string, minLength: 20, maxLength: 256 }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, requestId]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            requestId: { type: string }
+  responses:
+    Error:
+      description: Erro padronizado
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

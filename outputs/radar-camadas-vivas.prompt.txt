@@ -1,0 +1,6 @@
+Use case: ui-mockup
+Asset type: premium mobile app identity concept, first viewport, portrait 9:16
+Primary request: Create a high-fidelity mobile home screen for RADAR, a social music card-collection app where listening outside the app evolves artist cards and the user's account.
+Subject: one dominant evolutive artist card for a fictional Brazilian singer named LINA MAR, built from offset transparent acetate leaves with punched binding holes and strong color tabs. Show RADAR, LINA MAR, NÍVEL 4, 2.840 XP, 386 ESCUTAS, COLEÇÃO and AMIGOS.
+Palette: bone #F4F1E8, ink #181A20, ultramarine #4255FF, coral #FF5B3D, chartreuse #D8FF52.
+Constraints: universal across genres and ages; practical touch targets; no real artist, existing logo, phone hardware frame or watermark. Avoid dark streaming UI, neon glow, glassmorphism, generic card grids, casino/gacha aesthetics, childish game UI and fantasy ornament.

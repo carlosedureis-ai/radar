@@ -1,0 +1,48 @@
+# Segredos e configuração local
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Dependências e builds
+**/node_modules/
+**/.pnpm-store/
+backend/build/
+backend/dist/
+coverage/
+*.tsbuildinfo
+
+# Dados locais
+backend/data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Ferramentas e arquivos intermediários do Codex
+work/
+tools/strix/
+.impeccable/*
+!.impeccable/design.json
+
+# Resultados locais de segurança
+**/strix_runs/
+*.sarif
+
+# Pacotes exportados; os fontes correspondentes são versionados
+outputs/*.zip
+
+# Sistema operacional e editores
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

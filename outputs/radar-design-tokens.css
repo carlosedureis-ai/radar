@@ -1,0 +1,58 @@
+@font-face {
+  font-family: "Radar Display";
+  src: url("assets/fonts/Anton-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Radar UI";
+  src: url("assets/fonts/Atkinson-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Radar UI";
+  src: url("assets/fonts/Atkinson-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Radar UI";
+  src: url("assets/fonts/Atkinson-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  --radar-ink: #181a20;
+  --radar-bone: #f4f1e8;
+  --radar-paper: #fffdf7;
+  --radar-ultramarine: #4255ff;
+  --radar-coral: #ff5b3d;
+  --radar-chartreuse: #d8ff52;
+  --radar-sky: #8fc8ff;
+  --radar-success: #16834b;
+  --radar-warning: #a44d00;
+  --radar-danger: #bb261d;
+  --radar-ink-muted: #51545d;
+  --radar-line: rgba(24, 26, 32, 0.18);
+  --radar-acetate: rgba(255, 253, 247, 0.78);
+  --radar-font-display: "Radar Display", "Arial Narrow", sans-serif;
+  --radar-font-ui: "Radar UI", system-ui, sans-serif;
+  --radar-space-1: 0.25rem;
+  --radar-space-2: 0.5rem;
+  --radar-space-3: 0.75rem;
+  --radar-space-4: 1rem;
+  --radar-space-6: 1.5rem;
+  --radar-space-8: 2rem;
+  --radar-space-12: 3rem;
+  --radar-space-16: 4rem;
+  --radar-radius-control: 12px;
+  --radar-radius-card: 16px;
+  --radar-shadow-card: 0 14px 36px rgba(24, 26, 32, 0.18), 0 3px 8px rgba(24, 26, 32, 0.1);
+  --radar-motion-fast: 120ms;
+  --radar-motion-layer: 180ms;
+  --radar-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}

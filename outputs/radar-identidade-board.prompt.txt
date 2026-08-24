@@ -1,0 +1,10 @@
+Use case: logo-brand
+Asset type: premium brand-kit overview board for implementation and presentation
+Primary request: Create one high-end 3x3 brand identity board for the mobile social music product RADAR, using the approved Camadas Vivas screen only as visual-world reference. Preserve its tactile transparent acetate layers, punched binder logic, saturated side tabs, bone ground, oversized condensed typography and universal cultural energy.
+Brand strategy: listeners use any external music service; real listening evolves artist cards and the user's account. The identity must work across every genre and age. Core metaphor: every listen adds a visible layer to the relationship with an artist.
+Logo concept: a simple geometric mark made from a central dot, three broken concentric layer-arcs, and one diagonal outward tab/path; pair it with a strong condensed uppercase wordmark RADAR. Repeat the same symbol logic across panels.
+Layout: landscape 4:3, strict 3x3 premium identity-deck grid on a dark charcoal outer canvas, strong gutters, varied panel scale and quiet negative space.
+Panels: large logo cover; geometric logo construction; app icon; cropped mobile interface; color system; typography specimen; five card-evolution layers; share-card application; two-step hinge/slide motion storyboard.
+Palette: bone #F4F1E8, ink #181A20, ultramarine #4255FF, coral #FF5B3D, chartreuse #D8FF52.
+Text: RADAR; CAMADAS VIVAS; OUÇA LÁ. EVOLUA AQUI.; NÍVEL 4.
+Constraints: no real artist or streaming-service logos, fake partnership claims, watermark, messy moodboard, neon glow, glassmorphism, generic waveform logo, casino/gacha visuals, NFT language or childish game styling.

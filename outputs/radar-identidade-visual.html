@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#181A20">
+  <title>Radar — Identidade Visual v1.0</title>
+  <link rel="stylesheet" href="radar-design-tokens.css">
+  <style>
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth;background:var(--radar-ink)}
+    body{margin:0;font-family:var(--radar-font-ui);color:var(--radar-ink);background:var(--radar-bone);line-height:1.45}
+    ::selection{background:var(--radar-chartreuse);color:var(--radar-ink)}
+    :focus-visible{outline:3px solid var(--radar-ultramarine);outline-offset:4px}
+    button,a{font:inherit}
+    a{color:inherit;text-decoration-thickness:1.5px;text-underline-offset:4px}
+    img{display:block;max-width:100%}
+    svg{display:block}
+    .display{font-family:var(--radar-font-display);font-weight:400;line-height:.92;letter-spacing:-.025em;text-transform:uppercase}
+    .shell{width:min(1180px,calc(100% - 40px));margin-inline:auto}
+    .topbar{position:sticky;top:0;z-index:20;background:rgba(244,241,232,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--radar-line)}
+    .topbar-inner{height:72px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+    .brand-lockup{display:flex;align-items:center;gap:11px;text-decoration:none}
+    .brand-lockup svg{width:42px;height:42px}
+    .brand-lockup strong{font:34px/1 var(--radar-font-display);letter-spacing:.03em}
+    .topnav{display:flex;align-items:center;gap:22px;font-weight:600;font-size:.94rem}
+    .topnav a{text-decoration:none}
+    .version{padding:7px 10px;border:1px solid var(--radar-ink);border-radius:999px;font-size:.75rem;font-weight:700;letter-spacing:.04em}
+    .hero{min-height:min(900px,calc(100svh - 72px));display:grid;grid-template-columns:minmax(0,1.04fr) minmax(360px,.74fr);gap:clamp(40px,7vw,96px);align-items:center;padding:64px 0 72px;overflow:hidden}
+    .hero-copy{position:relative;z-index:2}
+    .hero-mark{width:112px;height:112px;margin-bottom:28px}
+    h1{font-size:clamp(5.2rem,15vw,12.5rem);margin:0}
+    .tagline{font-size:clamp(1.25rem,2.7vw,2.1rem);font-weight:700;max-width:22ch;margin:24px 0 18px}
+    .lede{font-size:1.06rem;color:var(--radar-ink-muted);max-width:57ch;margin:0}
+    .hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
+    .button{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:0 18px;border-radius:var(--radar-radius-control);border:1px solid transparent;font-weight:700;text-decoration:none;cursor:pointer;transition:transform var(--radar-motion-fast) var(--radar-ease-out),background var(--radar-motion-fast) var(--radar-ease-out)}
+    .button:hover{transform:translateY(-2px)}
+    .button-primary{background:var(--radar-ink);color:var(--radar-bone)}
+    .button-primary:hover{background:var(--radar-ultramarine)}
+    .button-secondary{border-color:var(--radar-ink);background:transparent}
+    .principle .button-secondary{color:var(--radar-bone);border-color:var(--radar-bone)}
+    .hero-art{position:relative;min-height:690px;display:grid;place-items:center}
+    .hero-art:before,.hero-art:after{content:"";position:absolute;width:78%;height:76%;border-radius:24px;transform:rotate(7deg) translate(26px,-5px);background:var(--radar-ultramarine)}
+    .hero-art:after{transform:rotate(-4deg) translate(-21px,20px);background:var(--radar-coral)}
+    .hero-art img{position:relative;z-index:2;max-height:720px;filter:drop-shadow(0 26px 32px rgba(24,26,32,.24))}
+    .principle{background:var(--radar-ink);color:var(--radar-bone);padding:100px 0;overflow:hidden}
+    .principle-grid{display:grid;grid-template-columns:.78fr 1.22fr;gap:72px;align-items:center}
+    .section-title{font-size:clamp(3.4rem,8vw,7.4rem);margin:0;max-width:10ch}
+    .section-copy{font-size:1.08rem;max-width:54ch;color:color-mix(in srgb,var(--radar-bone) 78%,transparent);margin:24px 0 0}
+    .layer-demo{position:relative;height:440px;perspective:1200px}
+    .layer{position:absolute;inset:48px 8% 16px 12%;border-radius:18px;border:1px solid rgba(255,255,255,.45);box-shadow:0 18px 45px rgba(0,0,0,.3);display:flex;align-items:flex-end;padding:28px;background:rgba(244,241,232,.86);color:var(--radar-ink);transform-origin:24px 50%;transition:transform 180ms steps(2,end)}
+    .layer:nth-child(1){background:var(--radar-ultramarine);transform:translate(54px,-38px) rotate(7deg)}
+    .layer:nth-child(2){background:var(--radar-coral);transform:translate(30px,-20px) rotate(3deg)}
+    .layer:nth-child(3){background:var(--radar-chartreuse);transform:translate(12px,-8px) rotate(1deg)}
+    .layer:nth-child(4){backdrop-filter:blur(9px)}
+    .layer-demo.is-evolved .layer:nth-child(1){transform:translate(92px,-62px) rotate(11deg)}
+    .layer-demo.is-evolved .layer:nth-child(2){transform:translate(54px,-34px) rotate(6deg)}
+    .layer-demo.is-evolved .layer:nth-child(3){transform:translate(26px,-18px) rotate(3deg)}
+    .layer strong{font:clamp(3rem,6vw,6rem)/.9 var(--radar-font-display);text-transform:uppercase}
+    .layer-controls{display:flex;justify-content:flex-end;margin-top:18px}
+    .identity{padding:110px 0 80px}
+    .intro-row{display:grid;grid-template-columns:.78fr 1.22fr;gap:72px;align-items:end;margin-bottom:64px}
+    .intro-row p{max-width:60ch;margin:0;color:var(--radar-ink-muted);font-size:1.08rem}
+    .identity-showcase{display:grid;grid-template-columns:1.28fr .72fr;gap:18px}
+    .logo-stage{min-height:500px;background:var(--radar-paper);border-radius:20px;padding:clamp(28px,5vw,64px);display:flex;flex-direction:column;justify-content:space-between;box-shadow:var(--radar-shadow-card)}
+    .logo-stage img{width:min(100%,600px);margin:auto}
+    .usage-stack{display:grid;gap:18px}
+    .usage{min-height:240px;border-radius:20px;padding:28px;display:flex;flex-direction:column;justify-content:space-between}
+    .usage-dark{background:var(--radar-ink);color:var(--radar-bone)}
+    .usage-blue{background:var(--radar-ultramarine);color:white}
+    .usage svg{width:82px;height:82px}
+    .meta{font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+    .construction{display:grid;grid-template-columns:1fr 1fr;gap:36px;margin-top:56px;padding-top:56px;border-top:1px solid var(--radar-line)}
+    .construction-visual{aspect-ratio:1.3;display:grid;place-items:center;background:linear-gradient(var(--radar-line) 1px,transparent 1px),linear-gradient(90deg,var(--radar-line) 1px,transparent 1px);background-size:24px 24px;border-radius:16px}
+    .construction-visual img{width:46%}
+    .rules{display:grid;gap:18px;align-content:center}
+    .rule{display:grid;grid-template-columns:38px 1fr;gap:14px;align-items:start}
+    .rule b{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--radar-chartreuse)}
+    .rule p{margin:0;color:var(--radar-ink-muted)}
+    .palette{padding:100px 0;background:var(--radar-paper)}
+    .swatches{display:grid;grid-template-columns:1.15fr repeat(4,1fr);gap:12px;margin-top:54px}
+    .swatch{min-height:280px;border-radius:16px;padding:22px;display:flex;flex-direction:column;justify-content:space-between;border:1px solid rgba(24,26,32,.08)}
+    .swatch:first-child{min-height:380px}
+    .swatch b{font-size:1.15rem}
+    .swatch code{font:600 .82rem var(--radar-font-ui);font-variant-numeric:tabular-nums}
+    .swatch-ink{background:var(--radar-ink);color:var(--radar-bone)}
+    .swatch-blue{background:var(--radar-ultramarine);color:white}
+    .swatch-coral{background:var(--radar-coral)}
+    .swatch-lime{background:var(--radar-chartreuse)}
+    .swatch-bone{background:var(--radar-bone)}
+    .type{padding:110px 0}
+    .type-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:54px}
+    .type-display,.type-ui{border-radius:20px;padding:clamp(26px,4vw,48px);min-height:430px}
+    .type-display{background:var(--radar-ink);color:var(--radar-bone)}
+    .type-ui{background:var(--radar-ultramarine);color:white}
+    .type-sample{font-size:clamp(5rem,10vw,10rem);margin:28px 0 16px}
+    .ui-sample{font-size:clamp(2.4rem,5vw,5.6rem);font-weight:700;letter-spacing:-.025em;line-height:1.02;margin:35px 0 24px}
+    .alphabet{word-break:break-all;font-size:1.05rem;letter-spacing:.06em}
+    .cards-section{padding:100px 0;background:var(--radar-ink);color:var(--radar-bone);overflow:hidden}
+    .card-levels{display:grid;grid-template-columns:repeat(5,1fr);align-items:end;gap:14px;margin-top:64px}
+    .level-card{position:relative;min-height:360px;border-radius:16px;padding:18px;color:var(--radar-ink);background:var(--radar-bone);box-shadow:0 18px 32px rgba(0,0,0,.24);display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+    .level-card:before{content:"";position:absolute;inset:0 0 auto;height:10px;background:var(--level-color,var(--radar-ultramarine))}
+    .level-card:nth-child(2){min-height:390px}.level-card:nth-child(3){min-height:420px}.level-card:nth-child(4){min-height:450px}.level-card:nth-child(5){min-height:480px}
+    .level-number{font:clamp(4rem,7vw,7rem)/1 var(--radar-font-display)}
+    .level-art{height:150px;border-radius:12px;background:linear-gradient(135deg,var(--radar-sky),var(--level-color,var(--radar-ultramarine)));display:grid;place-items:center}
+    .level-art img{width:60px;height:60px;opacity:.84}
+    .level-name{font:2rem/1 var(--radar-font-display);text-transform:uppercase}
+    .level-card small{color:var(--radar-ink-muted);font-weight:600}
+    .account{padding:110px 0}
+    .account-grid{display:grid;grid-template-columns:.86fr 1.14fr;gap:64px;align-items:center}
+    .account-sheet{position:relative;min-height:520px;background:var(--radar-paper);border-radius:18px;padding:32px;box-shadow:var(--radar-shadow-card);overflow:hidden}
+    .account-sheet:before,.account-sheet:after{content:"";position:absolute;width:70%;height:70%;right:-24%;top:18%;border-radius:18px;transform:rotate(9deg);background:var(--radar-coral);z-index:0}
+    .account-sheet:after{right:-14%;top:13%;transform:rotate(4deg);background:var(--radar-ultramarine)}
+    .account-content{position:relative;z-index:1;display:grid;gap:28px}
+    .account-level{display:flex;align-items:center;justify-content:space-between;gap:20px}
+    .account-level strong{font:7rem/1 var(--radar-font-display)}
+    .progress{height:14px;border-radius:999px;background:#d9d7d0;overflow:hidden}
+    .progress span{display:block;width:68%;height:100%;background:var(--radar-ultramarine)}
+    .badges{display:flex;flex-wrap:wrap;gap:10px}
+    .badge{padding:9px 12px;border-radius:999px;font-weight:700;background:var(--radar-chartreuse)}
+    .badge:nth-child(2){background:var(--radar-coral)}.badge:nth-child(3){background:var(--radar-sky)}
+    .share-preview{background:var(--radar-ultramarine);color:white;border-radius:16px;padding:28px;min-height:200px;display:flex;flex-direction:column;justify-content:space-between}
+    .share-preview strong{font:3.6rem/.95 var(--radar-font-display);text-transform:uppercase;max-width:8ch}
+    .components{padding:100px 0;background:var(--radar-paper)}
+    .component-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;margin-top:56px}
+    .component-board{border-radius:20px;padding:36px;background:var(--radar-bone);min-height:420px}
+    .component-board.dark{background:var(--radar-ink);color:var(--radar-bone)}
+    .sample-row{display:flex;flex-wrap:wrap;gap:12px;margin:26px 0 42px}
+    .tab{padding:10px 14px;border-radius:10px 10px 0 0;background:var(--radar-ultramarine);color:white;font-weight:700}
+    .tab.coral{background:var(--radar-coral);color:var(--radar-ink)}.tab.lime{background:var(--radar-chartreuse);color:var(--radar-ink)}
+    .status-list{display:grid;gap:12px}
+    .status{display:grid;grid-template-columns:12px 1fr auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid rgba(244,241,232,.2)}
+    .status-dot{width:10px;height:10px;border-radius:50%;background:var(--radar-chartreuse)}
+    .status time{font-variant-numeric:tabular-nums;color:rgba(244,241,232,.62)}
+    .motion{padding:100px 0;background:var(--radar-ultramarine);color:white}
+    .motion-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:54px}
+    .motion-step{min-height:290px;border-radius:18px;padding:24px;background:rgba(255,255,255,.1);display:flex;flex-direction:column;justify-content:space-between}
+    .motion-step strong{font:4rem/1 var(--radar-font-display)}
+    .motion-step p{margin:0;max-width:30ch}
+    .handoff{padding:110px 0;background:var(--radar-chartreuse)}
+    .handoff-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:70px;align-items:start}
+    .downloads{display:grid;border-top:1px solid var(--radar-ink)}
+    .download{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0;border-bottom:1px solid var(--radar-ink);font-weight:700;text-decoration:none}
+    .download span:last-child{font-size:.82rem;text-transform:uppercase;letter-spacing:.08em}
+    .note{margin-top:30px;padding:18px;border:1px solid var(--radar-ink);border-radius:14px;max-width:60ch}
+    footer{background:var(--radar-ink);color:var(--radar-bone);padding:34px 0}
+    .footer-inner{display:flex;justify-content:space-between;gap:24px;align-items:center}
+    .footer-inner p{margin:0;color:rgba(244,241,232,.65)}
+    @media(max-width:900px){
+      .topnav a:not(.version){display:none}.hero{grid-template-columns:1fr;padding-top:52px}.hero-art{min-height:620px}.hero-art img{max-height:620px}.principle-grid,.intro-row,.account-grid,.handoff-grid{grid-template-columns:1fr}.identity-showcase,.construction,.type-grid,.component-grid{grid-template-columns:1fr}.swatches{grid-template-columns:repeat(2,1fr)}.swatch:first-child{grid-column:1/-1;min-height:260px}.card-levels{grid-template-columns:repeat(2,1fr);align-items:stretch}.level-card,.level-card:nth-child(n){min-height:360px}.level-card:last-child{grid-column:1/-1}.motion-steps{grid-template-columns:1fr}.principle-grid{gap:40px}.account-grid{gap:40px}
+    }
+    @media(max-width:560px){
+      .shell{width:min(100% - 24px,1180px)}.topbar-inner{height:62px}.brand-lockup svg{width:34px;height:34px}.brand-lockup strong{font-size:29px}.version{font-size:.68rem}.hero{min-height:auto;padding-bottom:52px}.hero-mark{width:82px;height:82px}.hero-art{min-height:520px}.hero-art img{max-height:520px}.hero-actions{display:grid}.button{width:100%}.principle,.identity,.palette,.type,.cards-section,.account,.components,.motion,.handoff{padding:72px 0}.layer-demo{height:350px}.layer{padding:20px}.swatches,.card-levels{grid-template-columns:1fr}.swatch:first-child,.level-card:last-child{grid-column:auto}.swatch,.swatch:first-child{min-height:220px}.logo-stage{min-height:360px}.account-sheet{min-height:480px}.account-level strong{font-size:5rem}.footer-inner{align-items:flex-start;flex-direction:column}
+    }
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.button,.layer{transition:none}.button:hover{transform:none}}
+  </style>
+</head>
+<body>
+  <!--
+  THESIS: A escuta externa vira uma camada física e compartilhável; recusamos o feed musical escuro e genérico.
+  OWN-WORLD: marfim e tinta com ultramarino, coral e lima; acetato perfurado, abas e sombras reais.
+  STORY: entender a marca, ver como cartas e conta evoluem, baixar os arquivos mestres.
+  FIRST VIEWPORT: logotipo enorme à esquerda e a carta aprovada em camadas à direita; downloads primários ficam junto à promessa.
+  FORM: guia editorial-operacional no mundo Camadas Vivas; challenger escolhido, seed f6523e38.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+  -->
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand-lockup" href="#inicio" aria-label="Radar, voltar ao início">
+        <img src="radar-logo-mark.svg" alt="" width="42" height="42">
+        <strong>RADAR</strong>
+      </a>
+      <nav class="topnav" aria-label="Seções do guia">
+        <a href="#marca">Marca</a><a href="#cores">Cores</a><a href="#cartas">Cartas</a><a href="#entrega">Arquivos</a>
+        <span class="version">IDENTIDADE 1.0</span>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="shell hero" id="inicio">
+      <div class="hero-copy">
+        <img class="hero-mark" src="radar-logo-mark.svg" alt="Símbolo Radar">
+        <h1 class="display">Radar</h1>
+        <p class="tagline">Ouça lá. Evolua aqui.</p>
+        <p class="lede">Uma identidade para transformar escutas reais em cartas, progresso e histórias compartilháveis — sem parecer um player, cassino ou jogo infantil.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="radar-logo-horizontal.svg" download>Baixar logo SVG</a>
+          <a class="button button-secondary" href="radar-identidade-board.png" download>Baixar prancha</a>
+        </div>
+      </div>
+      <div class="hero-art" aria-label="Tela aprovada Camadas Vivas">
+        <img src="radar-camadas-vivas.png" alt="Conceito de interface Radar com carta de artista em camadas transparentes">
+      </div>
+    </section>
+
+    <section class="principle">
+      <div class="shell principle-grid">
+        <div><h2 class="display section-title">Cada escuta adiciona uma camada.</h2><p class="section-copy">A progressão não é uma barra abstrata. Ela modifica a matéria da carta: profundidade, cor, abas, selos e conteúdo aparecem conforme a relação com o artista cresce.</p></div>
+        <div>
+          <div class="layer-demo" id="layerDemo" aria-live="polite">
+            <div class="layer"></div><div class="layer"></div><div class="layer"></div><div class="layer"><strong>nível 4</strong></div>
+          </div>
+          <div class="layer-controls"><button class="button button-secondary" id="evolveButton" type="button" aria-pressed="false">Simular evolução</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="identity" id="marca">
+      <div class="shell">
+        <div class="intro-row"><h2 class="display section-title">Uma marca, muitos mundos.</h2><p>A marca-mãe permanece estável para acolher públicos e gêneros diferentes. As cores dos artistas entram nas imagens e nas camadas secundárias; o núcleo Radar conserva forma, contraste e legibilidade.</p></div>
+        <div class="identity-showcase">
+          <div class="logo-stage"><span class="meta">Lockup principal</span><img src="radar-logo-horizontal.svg" alt="Logo horizontal Radar"><span class="meta">Preferencial sobre fundo claro</span></div>
+          <div class="usage-stack">
+            <div class="usage usage-dark"><span class="meta">Ícone do app</span><img src="radar-app-icon.svg" alt="Ícone do aplicativo Radar" width="96" height="96"><strong>512 × 512</strong></div>
+            <div class="usage usage-blue"><span class="meta">Versão de uma cor</span><img src="radar-logo-monocromatico.svg" alt="Símbolo Radar monocromático" width="96" height="96"><strong>Para gravação, bordado e baixo custo</strong></div>
+          </div>
+        </div>
+        <div class="construction">
+          <div class="construction-visual"><img src="radar-logo-mark.svg" alt="Construção geométrica do símbolo Radar"></div>
+          <div class="rules">
+            <div class="rule"><b>1</b><p><strong>Núcleo:</strong> representa a pessoa e sua identidade musical.</p></div>
+            <div class="rule"><b>2</b><p><strong>Três arcos:</strong> escuta, coleção e comunidade em evolução.</p></div>
+            <div class="rule"><b>3</b><p><strong>Aba diagonal:</strong> a descoberta que sai da bolha e é compartilhada.</p></div>
+            <div class="rule"><b>4</b><p><strong>Área de proteção:</strong> mantenha ao redor do símbolo pelo menos a largura do núcleo central.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="palette" id="cores">
+      <div class="shell">
+        <h2 class="display section-title">Cor com função.</h2>
+        <p class="section-copy" style="color:var(--radar-ink-muted)">Marfim e tinta estruturam a experiência. Ultramarino indica ação e progresso; coral sinaliza atividade social; lima marca conquista e estado novo.</p>
+        <div class="swatches">
+          <div class="swatch swatch-ink"><b>Tinta</b><code>#181A20 · estrutura</code></div>
+          <div class="swatch swatch-blue"><b>Ultramarino</b><code>#4255FF · ação</code></div>
+          <div class="swatch swatch-coral"><b>Coral</b><code>#FF5B3D · social</code></div>
+          <div class="swatch swatch-lime"><b>Lima</b><code>#D8FF52 · conquista</code></div>
+          <div class="swatch swatch-bone"><b>Marfim</b><code>#F4F1E8 · superfície</code></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="type">
+      <div class="shell">
+        <h2 class="display section-title">Voz direta. Leitura aberta.</h2>
+        <div class="type-grid">
+          <div class="type-display"><span class="meta">Display · Anton</span><p class="display type-sample">RADAR</p><p class="alphabet">ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789</p><p>Use em nomes de artistas, níveis e chamadas curtas. Nunca em parágrafos.</p></div>
+          <div class="type-ui"><span class="meta">Interface · Atkinson Hyperlegible Next</span><p class="ui-sample">Escutas que viram história.</p><p class="alphabet">Aa Bb Cc 1Iil 0Oo 8B</p><p>Use em navegação, textos, métricas, formulários e acessibilidade.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cards-section" id="cartas">
+      <div class="shell">
+        <h2 class="display section-title">A carta ganha matéria.</h2>
+        <p class="section-copy">Raridade não é comprada. Cada nível acrescenta informação e profundidade; a imagem do artista continua sendo protagonista. Os valores de XP abaixo são exemplos ilustrativos, a validar no produto.</p>
+        <div class="card-levels">
+          <article class="level-card" style="--level-color:#8FC8FF"><span class="level-number">1</span><div class="level-art"><img src="radar-logo-monocromatico.svg" alt=""></div><div><div class="level-name">Descoberta</div><small>Uma camada · primeira escuta</small></div></article>
+          <article class="level-card" style="--level-color:#4255FF"><span class="level-number">2</span><div class="level-art"><img src="radar-logo-monocromatico.svg" alt=""></div><div><div class="level-name">Ouvinte</div><small>Aba de escutas · exemplo: 100 XP</small></div></article>
+          <article class="level-card" style="--level-color:#FF5B3D"><span class="level-number">3</span><div class="level-art"><img src="radar-logo-monocromatico.svg" alt=""></div><div><div class="level-name">Fã</div><small>Camada social · exemplo: 500 XP</small></div></article>
+          <article class="level-card" style="--level-color:#D8FF52"><span class="level-number">4</span><div class="level-art"><img src="radar-logo-monocromatico.svg" alt=""></div><div><div class="level-name">Especialista</div><small>Selos e eras · exemplo: 1.500 XP</small></div></article>
+          <article class="level-card" style="--level-color:#181A20"><span class="level-number">5</span><div class="level-art"><img src="radar-logo-mark.svg" alt=""></div><div><div class="level-name">Lenda</div><small>Acetato completo · exemplo: 10.000 XP</small></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="account">
+      <div class="shell account-grid">
+        <div><h2 class="display section-title">A conta também evolui.</h2><p class="section-copy" style="color:var(--radar-ink-muted)">O nível da conta mede amplitude, consistência e contribuição social. Ele não substitui as cartas: organiza toda a trajetória do ouvinte.</p></div>
+        <div class="account-sheet">
+          <div class="account-content">
+            <span class="meta">Exemplo ilustrativo · Carlos · Curador</span>
+            <div class="account-level"><div><strong>24</strong><div>NÍVEL DA CONTA</div></div><img src="radar-logo-mark.svg" width="76" height="76" alt=""></div>
+            <div><div class="progress" role="progressbar" aria-label="Exemplo: 68% para o próximo nível" aria-valuenow="68" aria-valuemin="0" aria-valuemax="100"><span></span></div><p>Exemplo: 7.450 / 11.000 XP</p></div>
+            <div class="badges"><span class="badge">Rap 18</span><span class="badge">Pioneiro ×14</span><span class="badge">Curador</span></div>
+            <div class="share-preview"><span class="meta">Cartão compartilhável</span><strong>Subi para o nível 24.</strong><span>Ouça lá. Evolua aqui.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="components">
+      <div class="shell">
+        <h2 class="display section-title">Componentes falam a mesma língua.</h2>
+        <div class="component-grid">
+          <div class="component-board"><span class="meta">Ações e abas</span><div class="sample-row"><button class="button button-primary">Compartilhar carta</button><button class="button button-secondary">Ver coleção</button></div><div class="sample-row"><span class="tab">Nível</span><span class="tab coral">Escutas</span><span class="tab lime">Conquista</span></div><p>Controles usam cantos de 12 px. Cartas usam 16 px. Pílulas ficam reservadas a filtros, selos e estados compactos.</p></div>
+          <div class="component-board dark"><span class="meta">Atividade</span><div class="status-list"><div class="status"><span class="status-dot"></span><span>Ana evoluiu LINA MAR</span><time>2 h</time></div><div class="status"><span class="status-dot" style="background:var(--radar-coral)"></span><span>João completou um álbum</span><time>5 h</time></div><div class="status"><span class="status-dot" style="background:var(--radar-sky)"></span><span>Bia compartilhou uma carta</span><time>ontem</time></div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="motion">
+      <div class="shell">
+        <h2 class="display section-title">Movimento revela, não distrai.</h2>
+        <div class="motion-steps">
+          <div class="motion-step"><strong>01</strong><div><h3>Escuta confirmada</h3><p>A barra recebe o progresso em 120 ms, sem celebração a cada faixa.</p></div></div>
+          <div class="motion-step"><strong>02</strong><div><h3>Nível concluído</h3><p>A nova camada entra com dois passos mecânicos em 180 ms.</p></div></div>
+          <div class="motion-step"><strong>03</strong><div><h3>Conquista pronta</h3><p>A aba lima se projeta e oferece compartilhamento. Movimento reduzido recebe troca instantânea.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="handoff" id="entrega">
+      <div class="shell handoff-grid">
+        <div><h2 class="display section-title">Arquivos prontos.</h2><p>Os vetores são a fonte de verdade da marca. A prancha é uma apresentação visual; a tela aprovada continua sendo a referência de material e composição.</p><div class="note"><strong>Observação:</strong> “Radar” permanece nome de trabalho. Antes de lançamento comercial, faça busca de marca e disponibilidade de domínio.</div></div>
+        <div class="downloads">
+          <a class="download" href="radar-logo-horizontal.svg" download><span>Logo horizontal</span><span>SVG</span></a>
+          <a class="download" href="radar-logo-mark.svg" download><span>Símbolo colorido</span><span>SVG</span></a>
+          <a class="download" href="radar-logo-monocromatico.svg" download><span>Símbolo monocromático</span><span>SVG</span></a>
+          <a class="download" href="radar-app-icon.svg" download><span>Ícone do aplicativo</span><span>SVG</span></a>
+          <a class="download" href="radar-design-tokens.css" download><span>Tokens para frontend</span><span>CSS</span></a>
+          <a class="download" href="radar-design-tokens.json" download><span>Tokens estruturados</span><span>JSON</span></a>
+          <a class="download" href="radar-identidade-board.png" download><span>Prancha de identidade</span><span>PNG</span></a>
+          <a class="download" href="radar-camadas-vivas.png" download><span>Tela de referência</span><span>PNG</span></a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="shell footer-inner"><strong>RADAR · IDENTIDADE 1.0</strong><p>Camadas Vivas · arquivo de conceito para desenvolvimento</p></div></footer>
+  <script>
+    const demo=document.querySelector('#layerDemo');
+    const button=document.querySelector('#evolveButton');
+    button.addEventListener('click',()=>{
+      const evolved=demo.classList.toggle('is-evolved');
+      button.setAttribute('aria-pressed',String(evolved));
+      button.textContent=evolved?'Voltar ao nível 4':'Simular evolução';
+    });
+  </script>
+</body>
+</html>

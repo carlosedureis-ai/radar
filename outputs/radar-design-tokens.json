@@ -1,0 +1,30 @@
+{
+  "brand": "Radar",
+  "version": "1.0",
+  "colors": {
+    "ink": "#181A20",
+    "bone": "#F4F1E8",
+    "paper": "#FFFDF7",
+    "ultramarine": "#4255FF",
+    "coral": "#FF5B3D",
+    "chartreuse": "#D8FF52",
+    "sky": "#8FC8FF",
+    "success": "#16834B",
+    "warning": "#A44D00",
+    "danger": "#BB261D"
+  },
+  "typography": {
+    "display": "Anton",
+    "interface": "Atkinson Hyperlegible Next"
+  },
+  "radii": {
+    "control": 12,
+    "card": 16
+  },
+  "motion": {
+    "fast": 120,
+    "layer": 180,
+    "easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "layerStep": "steps(2, end)"
+  }
+}
