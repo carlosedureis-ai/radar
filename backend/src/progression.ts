@@ -19,6 +19,12 @@ type ArtistMappingRow = {
 type RuleRow = { level: number; name: string; min_xp: number; provisional: boolean };
 type ProgressionRuleRow = RuleRow & { scope: "card" | "account" };
 
+type JourneyStats = {
+  qualifiedListenCount: number;
+  artistCount: number;
+  highestCardLevel: number;
+};
+
 export type NormalizedListen = {
   provider: string;
   providerTrackId: string;
@@ -444,6 +450,26 @@ export async function getProgression(database: Queryable, userId: string): Promi
       FROM progression_rules ORDER BY scope, level
     `,
   );
+  const journey = await getJourneyStats(database, userId);
+  return {
+    account: {
+      id: account.id,
+      displayName: account.display_name,
+      xp: Number(account.account_xp),
+      level: Number(account.account_level),
+    },
+    rules: rulesResult.rows.map((row) => ({
+      scope: row.scope,
+      level: Number(row.level),
+      name: row.name,
+      minXp: Number(row.min_xp),
+      provisional: row.provisional,
+    })),
+    journey,
+  };
+}
+
+async function getJourneyStats(database: Queryable, userId: string): Promise<JourneyStats> {
   const [listenStats, cardStats] = await Promise.all([
     database.query<{ qualified_listen_count: number }>(
       "SELECT COUNT(*)::int AS qualified_listen_count FROM listening_events WHERE user_id = $1 AND qualified = true",
@@ -460,24 +486,9 @@ export async function getProgression(database: Queryable, userId: string): Promi
   const listenJourney = listenStats.rows[0];
   const cardJourney = cardStats.rows[0];
   return {
-    account: {
-      id: account.id,
-      displayName: account.display_name,
-      xp: Number(account.account_xp),
-      level: Number(account.account_level),
-    },
-    rules: rulesResult.rows.map((row) => ({
-      scope: row.scope,
-      level: Number(row.level),
-      name: row.name,
-      minXp: Number(row.min_xp),
-      provisional: row.provisional,
-    })),
-    journey: {
-      qualifiedListenCount: Number(listenJourney?.qualified_listen_count ?? 0),
-      artistCount: Number(cardJourney?.artist_count ?? 0),
-      highestCardLevel: Number(cardJourney?.highest_card_level ?? 0),
-    },
+    qualifiedListenCount: Number(listenJourney?.qualified_listen_count ?? 0),
+    artistCount: Number(cardJourney?.artist_count ?? 0),
+    highestCardLevel: Number(cardJourney?.highest_card_level ?? 0),
   };
 }
 
@@ -536,6 +547,73 @@ export async function getPublicShare(database: Queryable, token: string): Promis
     cardLevel: Number(share.card_level),
     cardXp: Number(share.card_xp),
     accountLevel: Number(share.account_level),
+    createdAt: new Date(share.created_at).toISOString(),
+  };
+}
+
+export async function createShareJourney(
+  database: Queryable,
+  userId: string,
+): Promise<{ token: string; createdAt: string }> {
+  const accountResult = await database.query<{ account_xp: number; account_level: number }>(
+    "SELECT account_xp, account_level FROM profiles WHERE id = $1",
+    [userId],
+  );
+  const account = accountResult.rows[0];
+  if (!account) throw new AppError(404, "USER_NOT_FOUND", "Usuário não encontrado");
+  const journey = await getJourneyStats(database, userId);
+  const token = randomToken(18);
+  const createdAt = new Date().toISOString();
+  await database.query(
+    `
+      INSERT INTO share_journeys(
+        id, public_token, user_id, account_xp, account_level,
+        qualified_listen_count, artist_count, highest_card_level, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    `,
+    [
+      randomUUID(),
+      token,
+      userId,
+      account.account_xp,
+      account.account_level,
+      journey.qualifiedListenCount,
+      journey.artistCount,
+      journey.highestCardLevel,
+      createdAt,
+    ],
+  );
+  return { token, createdAt };
+}
+
+export async function getPublicJourneyShare(database: Queryable, token: string): Promise<unknown> {
+  const result = await database.query<{
+    public_token: string;
+    account_xp: number;
+    account_level: number;
+    qualified_listen_count: number;
+    artist_count: number;
+    highest_card_level: number;
+    created_at: Date | string;
+  }>(
+    `
+      SELECT public_token, account_xp, account_level, qualified_listen_count,
+             artist_count, highest_card_level, created_at
+      FROM share_journeys WHERE public_token = $1
+    `,
+    [token],
+  );
+  const share = result.rows[0];
+  if (!share) throw new AppError(404, "JOURNEY_SHARE_NOT_FOUND", "Jornada compartilhada não encontrada");
+  return {
+    token: share.public_token,
+    accountXp: Number(share.account_xp),
+    accountLevel: Number(share.account_level),
+    journey: {
+      qualifiedListenCount: Number(share.qualified_listen_count),
+      artistCount: Number(share.artist_count),
+      highestCardLevel: Number(share.highest_card_level),
+    },
     createdAt: new Date(share.created_at).toISOString(),
   };
 }

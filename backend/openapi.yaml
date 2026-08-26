@@ -133,6 +133,15 @@ paths:
       responses:
         "200": { description: Conta e regras provisórias }
         "401": { $ref: "#/components/responses/Error" }
+  /v1/progression/share:
+    post:
+      summary: Criar um snapshot público da própria Jornada Radar
+      tags: [Social]
+      operationId: shareJourney
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { description: Snapshot da jornada criado sem histórico detalhado ou identidade }
+        "401": { $ref: "#/components/responses/Error" }
   /v1/cards/{artistId}/share:
     post:
       summary: Criar um compartilhamento da própria carta
@@ -161,6 +170,20 @@ paths:
           schema: { type: string }
       responses:
         "200": { description: Snapshot público sem dados privados }
+        "404": { $ref: "#/components/responses/Error" }
+  /v1/journey-shares/{token}:
+    get:
+      summary: Consultar uma Jornada Radar compartilhada publicamente
+      tags: [Social]
+      operationId: getPublicJourneyShare
+      security: []
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Totais públicos de progressão sem identidade ou histórico detalhado }
         "404": { $ref: "#/components/responses/Error" }
   /v1/admin/artists:
     get:

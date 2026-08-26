@@ -20,6 +20,7 @@ type RadarDataContextValue = RadarSnapshot & {
   syncSpotify(): Promise<SpotifySyncResult>;
   disconnectProvider(provider: string): Promise<void>;
   createShare(artistId: string): Promise<string>;
+  createJourneyShare(): Promise<string>;
 };
 
 const emptySnapshot: RadarSnapshot = {
@@ -102,6 +103,14 @@ export function RadarDataProvider({ children }: { children: ReactNode }) {
           { method: "POST" },
         );
         return `${window.location.origin}/compartilhar/${result.token}`;
+      },
+      async createJourneyShare() {
+        const result = await apiRequest<{ token: string }>(
+          "/v1/progression/share",
+          token,
+          { method: "POST" },
+        );
+        return `${window.location.origin}/jornada/${result.token}`;
       },
     }),
     [error, loading, refresh, refreshing, snapshot, token],

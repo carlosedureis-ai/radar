@@ -17,7 +17,9 @@ import { AppError } from "./errors.js";
 import { catalogArtist, listArtistCandidates, requireAdmin } from "./catalog.js";
 import {
   createShareCard,
+  createShareJourney,
   getProgression,
+  getPublicJourneyShare,
   getPublicShare,
   listCards,
 } from "./progression.js";
@@ -227,6 +229,14 @@ export async function createApp(options?: {
   app.get("/v1/progression", async (request) =>
     getProgression(database, await authenticated(request)),
   );
+  app.post(
+    "/v1/progression/share",
+    { config: { rateLimit: { max: 12, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const share = await createShareJourney(database, await authenticated(request));
+      return reply.status(201).send(share);
+    },
+  );
   app.post("/v1/cards/:artistId/share", async (request, reply) => {
     const { artistId } = parse(shareParamsSchema, request.params);
     const share = await createShareCard(database, await authenticated(request), artistId);
@@ -235,6 +245,10 @@ export async function createApp(options?: {
   app.get("/v1/shares/:token", async (request) => {
     const { token } = parse(publicShareParamsSchema, request.params);
     return getPublicShare(database, token);
+  });
+  app.get("/v1/journey-shares/:token", async (request) => {
+    const { token } = parse(publicShareParamsSchema, request.params);
+    return getPublicJourneyShare(database, token);
   });
 
   app.get("/v1/artists", async (request) => {

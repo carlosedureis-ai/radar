@@ -1,4 +1,4 @@
-import type { JourneyStats } from "../types";
+import type { JourneyStats, Progression, PublicJourneyShare } from "../types";
 
 export type JourneyMilestone = {
   id: "first-card" | "three-artists" | "ten-listens" | "card-level-two";
@@ -54,6 +54,34 @@ export function journeyMilestones(stats: JourneyStats): JourneyMilestone[] {
       href: "/cartas",
       action: "Ver coleção",
     }),
+  ];
+}
+
+export function completedJourneyMilestones(stats: JourneyStats): number {
+  return journeyMilestones(stats).filter((milestone) => milestone.complete).length;
+}
+
+export type JourneyComparisonRow = {
+  id: "account-level" | "milestones" | "artists" | "listens";
+  label: string;
+  shared: number;
+  current: number;
+};
+
+export function journeyComparison(
+  shared: PublicJourneyShare,
+  current: Progression,
+): JourneyComparisonRow[] {
+  return [
+    { id: "account-level", label: "Nível da conta", shared: shared.accountLevel, current: current.account.level },
+    {
+      id: "milestones",
+      label: "Marcos concluídos",
+      shared: completedJourneyMilestones(shared.journey),
+      current: completedJourneyMilestones(current.journey),
+    },
+    { id: "artists", label: "Artistas na coleção", shared: shared.journey.artistCount, current: current.journey.artistCount },
+    { id: "listens", label: "Escutas válidas", shared: shared.journey.qualifiedListenCount, current: current.journey.qualifiedListenCount },
   ];
 }
 

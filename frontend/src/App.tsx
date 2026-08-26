@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./auth/AuthProvider";
 import { AppShell } from "./components/AppShell";
 import { LoadingView } from "./components/LoadingView";
@@ -11,6 +11,7 @@ const CardsPage = lazy(() => import("./pages/CardsPage").then((module) => ({ def
 const ConnectionsPage = lazy(() => import("./pages/ConnectionsPage").then((module) => ({ default: module.ConnectionsPage })));
 const HomePage = lazy(() => import("./pages/HomePage").then((module) => ({ default: module.HomePage })));
 const ListensPage = lazy(() => import("./pages/ListensPage").then((module) => ({ default: module.ListensPage })));
+const JourneySharePage = lazy(() => import("./pages/JourneySharePage").then((module) => ({ default: module.JourneySharePage })));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage").then((module) => ({ default: module.NotFoundPage })));
 const PasswordResetPage = lazy(() => import("./pages/PasswordResetPage").then((module) => ({ default: module.PasswordResetPage })));
 const SharePage = lazy(() => import("./pages/SharePage").then((module) => ({ default: module.SharePage })));
@@ -24,8 +25,11 @@ function PrivateApp() {
 
 function AuthRoute() {
   const { session, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <LoadingView label="Confirmando sua sessão" />;
-  if (session) return <Navigate to="/" replace />;
+  const requestedReturn = new URLSearchParams(location.search).get("voltar");
+  const returnTo = requestedReturn?.startsWith("/jornada/") ? requestedReturn : "/";
+  if (session) return <Navigate to={returnTo} replace />;
   return <AuthPage />;
 }
 
@@ -42,6 +46,7 @@ export function App() {
         <Route path="/entrar" element={<AuthRoute />} />
         <Route path="/redefinir-senha" element={<PasswordResetRoute />} />
         <Route path="/compartilhar/:token" element={<SharePage />} />
+        <Route path="/jornada/:token" element={<JourneySharePage />} />
         <Route element={<PrivateApp />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/cartas" element={<CardsPage />} />

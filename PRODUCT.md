@@ -34,6 +34,7 @@ O usuário escuta em serviços externos, sincroniza o histórico com consentimen
 - A Jornada Radar apresenta marcos derivados apenas de escutas válidas e cartas persistidas: primeira carta, três artistas na coleção, dez escutas válidas e primeira carta no nível 2.
 - No MVP, marcos registram a trajetória e não concedem XP adicional; os limiares são provisórios e devem ser validados com uso real antes de expansão.
 - Cada sincronização informa eventos analisados, XP efetivamente concedido e quantos artistas avançaram.
+- O compartilhamento da jornada publica apenas um snapshot de totais; identidade, músicas e horários não aparecem. Um amigo autenticado pode comparar esse snapshot com a própria jornada sem publicar seus dados.
 - O produto não reproduz música e depende das permissões e limites das APIs conectadas.
 - Progressão deve limitar repetições artificiais, automação e compra de vantagem.
 - Uma identidade de provedor musical só pode alimentar uma conta Radar por vez.

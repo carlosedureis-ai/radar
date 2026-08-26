@@ -10,7 +10,7 @@ progresso, cartas evolutivas de artistas e histórias compartilháveis. O Radar 
 ## O que existe neste repositório
 
 - Backend TypeScript/Fastify com Supabase Auth, PostgreSQL, Spotify OAuth/PKCE, XP e cartas.
-- PWA React/Vite com cadastro, painel, cartas, escutas, conexões, conta e compartilhamento público.
+- PWA React/Vite com cadastro, painel, cartas, escutas, conexões, conta, jornadas públicas e comparação entre ouvintes.
 - Testes de integração, contrato OpenAPI e controles de segurança.
 - Identidade visual “Camadas Vivas”, logos, tokens, fontes e guia interativo.
 - Documentos de produto e design que registram as decisões aprovadas.

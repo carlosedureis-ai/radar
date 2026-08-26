@@ -51,6 +51,7 @@ async function createTestDatabase(): Promise<DatabasePool> {
   for (const migrationName of [
     "202608260001_radar_core.sql",
     "202608260002_artist_curation.sql",
+    "202608260003_journey_sharing.sql",
   ]) {
     const migrationPath = fileURLToPath(
       new URL(`../../supabase/migrations/${migrationName}`, import.meta.url),
@@ -495,6 +496,45 @@ describe("Radar API with Supabase Auth and PostgreSQL", () => {
     const publicShare = await backend.app.inject({ method: "GET", url: `/v1/shares/${token}` });
     expect(publicShare.statusCode).toBe(200);
     expect(publicShare.json()).toMatchObject({ artistName: "Artista de Teste", cardXp: 15 });
+  });
+
+  it("shares an immutable journey snapshot without identity or listening history", async () => {
+    const user = await createUser("journey-owner@example.com");
+    await activateProfile(user);
+    const { providerArtistId } = await seedEligibleArtist();
+    await recordListeningEvent(backend.database, user.id, {
+      provider: "spotify",
+      providerTrackId: "journey-track-1",
+      providerArtistId,
+      playedAt: "2026-08-23T12:00:00.000Z",
+    });
+
+    const created = await backend.app.inject({
+      method: "POST",
+      url: "/v1/progression/share",
+      headers: auth(user.accessToken),
+    });
+    expect(created.statusCode).toBe(201);
+    const token = created.json<{ token: string }>().token;
+
+    await recordListeningEvent(backend.database, user.id, {
+      provider: "spotify",
+      providerTrackId: "journey-track-2",
+      providerArtistId,
+      playedAt: "2026-08-23T13:00:00.000Z",
+    });
+    const publicShare = await backend.app.inject({
+      method: "GET",
+      url: `/v1/journey-shares/${token}`,
+    });
+    expect(publicShare.statusCode).toBe(200);
+    expect(publicShare.json()).toMatchObject({
+      accountXp: 15,
+      accountLevel: 1,
+      journey: { qualifiedListenCount: 1, artistCount: 1, highestCardLevel: 1 },
+    });
+    expect(JSON.stringify(publicShare.json())).not.toContain(user.email);
+    expect(JSON.stringify(publicShare.json())).not.toContain("journey-track");
   });
 
   it("keeps Spotify authorization disabled until credentials exist", async () => {

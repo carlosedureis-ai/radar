@@ -260,6 +260,8 @@ A jornada organiza marcos verificáveis como um capítulo material: cabeçalho e
 
 Após uma sincronização, use um recibo compacto em camadas para informar XP confirmado, artistas que avançaram e eventos analisados. A entrada mecânica de 180ms é reservada a esse momento de mudança real; sincronizações sem progresso usam linguagem neutra, sem celebração artificial.
 
+O compartilhamento transforma a jornada em uma prancha pública de camadas, com totais e marcos, nunca histórico detalhado. A comparação usa colunas simétricas “Esta jornada” e “Sua jornada”, sem pódio, vencedor, ranking ou cor que declare superioridade; diferenças existem para iniciar conversa, não para hierarquizar gostos.
+
 ### Motion
 
 Estados simples respondem em 120ms; entrada de uma nova camada acontece em 180ms com dois passos mecânicos (`steps(2, end)`). Movimento revela mudança de estado e oferece compartilhamento, sem celebrar cada faixa. `prefers-reduced-motion` recebe troca instantânea e nenhuma translação.

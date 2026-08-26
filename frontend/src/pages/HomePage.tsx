@@ -8,7 +8,7 @@ import { JourneyPanel } from "../components/JourneyPanel";
 import { useRadarData } from "../data/RadarDataProvider";
 
 export function HomePage() {
-  const { loading, progression, cards, listens, connections } = useRadarData();
+  const { loading, progression, cards, listens, connections, createJourneyShare } = useRadarData();
   if (loading) return <LoadingView />;
 
   const connected = connections.some((connection) => connection.status === "active");
@@ -25,7 +25,7 @@ export function HomePage() {
 
       {progression && <AccountProgress progression={progression} />}
 
-      {progression && <JourneyPanel stats={progression.journey} />}
+      {progression && <JourneyPanel stats={progression.journey} onCreateShare={createJourneyShare} />}
 
       {!connected && (
         <EmptyState

@@ -107,6 +107,14 @@ export type PublicShare = {
   createdAt: string;
 };
 
+export type PublicJourneyShare = {
+  token: string;
+  accountXp: number;
+  accountLevel: number;
+  journey: JourneyStats;
+  createdAt: string;
+};
+
 export type RadarSnapshot = {
   me: RadarUser | null;
   progression: Progression | null;

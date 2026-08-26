@@ -36,11 +36,12 @@ segredos; senha do banco, token de serviço e `DATABASE_URL` nunca devem ser ver
 
 ## Criar as tabelas
 
-A migration inicial e a extensão de curadoria estão em:
+As migrations do núcleo, da curadoria e do compartilhamento da jornada estão em:
 
 ```text
 ../supabase/migrations/202608260001_radar_core.sql
 ../supabase/migrations/202608260002_artist_curation.sql
+../supabase/migrations/202608260003_journey_sharing.sql
 ```
 
 Para o primeiro ambiente, abra **SQL Editor** no Supabase, cole a migration e execute uma vez.
