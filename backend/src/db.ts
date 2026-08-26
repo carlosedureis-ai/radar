@@ -15,10 +15,16 @@ export type DatabasePool = Queryable & {
 export function createDatabase(options: {
   databaseUrl: string;
   ssl: boolean;
+  sslCa?: string;
 }): DatabasePool {
   return new Pool({
     connectionString: options.databaseUrl,
-    ssl: options.ssl ? { rejectUnauthorized: true } : false,
+    ssl: options.ssl
+      ? {
+          rejectUnauthorized: true,
+          ...(options.sslCa ? { ca: options.sslCa } : {}),
+        }
+      : false,
     max: 5,
     connectionTimeoutMillis: 10_000,
     idleTimeoutMillis: 30_000,

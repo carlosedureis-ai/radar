@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { z } from "zod";
 
 const optionalEnvironmentValue = z.preprocess(
@@ -12,6 +13,7 @@ const schema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3333),
   DATABASE_URL: optionalEnvironmentValue,
   DATABASE_SSL: z.enum(["true", "false"]).default("true"),
+  DATABASE_SSL_CA_PATH: optionalEnvironmentValue,
   CORS_ORIGINS: z.string().default("http://127.0.0.1:5174"),
   TRUST_PROXY_CIDRS: z.string().default(""),
   SUPABASE_URL: z.string().url().default("https://fxhvbmidhgdmrdyrywqw.supabase.co"),
@@ -30,6 +32,7 @@ export type AppConfig = {
   port: number;
   databaseUrl: string;
   databaseSsl: boolean;
+  databaseSslCa?: string;
   corsOrigins: string[];
   trustedProxies: string[];
   supabaseUrl: string;
@@ -68,12 +71,16 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
   }
 
   const spotifyClientId = env.SPOTIFY_CLIENT_ID?.trim();
+  const databaseSslCa = env.DATABASE_SSL_CA_PATH
+    ? readFileSync(env.DATABASE_SSL_CA_PATH, "utf8")
+    : undefined;
   return {
     nodeEnv: env.NODE_ENV,
     host: env.HOST,
     port: env.PORT,
     databaseUrl: env.DATABASE_URL,
     databaseSsl: env.DATABASE_SSL === "true",
+    ...(databaseSslCa ? { databaseSslCa } : {}),
     corsOrigins: env.CORS_ORIGINS.split(",").map((value) => value.trim()).filter(Boolean),
     trustedProxies: env.TRUST_PROXY_CIDRS.split(",")
       .map((value) => value.trim())

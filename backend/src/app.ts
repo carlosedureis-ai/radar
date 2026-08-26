@@ -67,7 +67,11 @@ export async function createApp(options?: {
   const config = options?.config ?? loadConfig();
   const database =
     options?.database ??
-    createDatabase({ databaseUrl: config.databaseUrl, ssl: config.databaseSsl });
+    createDatabase({
+      databaseUrl: config.databaseUrl,
+      ssl: config.databaseSsl,
+      ...(config.databaseSslCa ? { sslCa: config.databaseSslCa } : {}),
+    });
   const tokenVerifier = options?.tokenVerifier ?? createSupabaseTokenVerifier(config);
   const app = Fastify({
     logger:

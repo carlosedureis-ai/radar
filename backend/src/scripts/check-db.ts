@@ -2,7 +2,11 @@ import { loadConfig } from "../config.js";
 import { createDatabase } from "../db.js";
 
 const config = loadConfig();
-const database = createDatabase({ databaseUrl: config.databaseUrl, ssl: config.databaseSsl });
+const database = createDatabase({
+  databaseUrl: config.databaseUrl,
+  ssl: config.databaseSsl,
+  ...(config.databaseSslCa ? { sslCa: config.databaseSslCa } : {}),
+});
 try {
   const result = await database.query<{ database_name: string; checked_at: Date | string }>(
     "SELECT current_database() AS database_name, now() AS checked_at",
