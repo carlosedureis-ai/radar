@@ -19,6 +19,7 @@ export type PublicUser = {
   displayName: string;
   accountXp: number;
   accountLevel: number;
+  isAdmin: boolean;
   createdAt: string;
 };
 
@@ -28,6 +29,7 @@ type ProfileRow = {
   display_name: string;
   account_xp: number;
   account_level: number;
+  is_admin: boolean;
   created_at: Date | string;
 };
 
@@ -47,6 +49,7 @@ function toPublicUser(row: ProfileRow): PublicUser {
     displayName: row.display_name,
     accountXp: Number(row.account_xp),
     accountLevel: Number(row.account_level),
+    isAdmin: row.is_admin,
     createdAt: new Date(row.created_at).toISOString(),
   };
 }
@@ -132,7 +135,7 @@ export async function ensureProfile(database: Queryable, identity: AuthIdentity)
 export async function getUser(database: Queryable, userId: string): Promise<PublicUser> {
   const result = await database.query<ProfileRow>(
     `
-      SELECT id, email, display_name, account_xp, account_level, created_at
+      SELECT id, email, display_name, account_xp, account_level, is_admin, created_at
       FROM profiles WHERE id = $1
     `,
     [userId],

@@ -4,12 +4,13 @@ import {
   House,
   PlugsConnected,
   UserCircle,
+  ShieldCheck,
 } from "@phosphor-icons/react";
 import { NavLink, Outlet } from "react-router-dom";
 import { RadarDataProvider, useRadarData } from "../data/RadarDataProvider";
 import { Brand } from "./Brand";
 
-const navItems = [
+const baseNavItems = [
   { to: "/", label: "Início", icon: House, end: true },
   { to: "/cartas", label: "Cartas", icon: CardsThree },
   { to: "/escutas", label: "Escutas", icon: Headphones },
@@ -18,7 +19,10 @@ const navItems = [
 ];
 
 function ShellContent() {
-  const { error, refresh, refreshing } = useRadarData();
+  const { error, me, refresh, refreshing } = useRadarData();
+  const navItems = me?.isAdmin
+    ? [...baseNavItems, { to: "/admin/artistas", label: "Admin", icon: ShieldCheck }]
+    : baseNavItems;
   return (
     <div className="app-frame">
       <header className="topbar">
@@ -43,7 +47,7 @@ function ShellContent() {
         <Outlet />
       </main>
 
-      <nav className="bottom-nav" aria-label="Navegação principal">
+      <nav className={`bottom-nav${me?.isAdmin ? " bottom-nav--admin" : ""}`} aria-label="Navegação principal">
         {navItems.map(({ to, label, icon: Icon, end }) => (
           <NavLink key={to} to={to} end={end}>
             <Icon size={23} weight="bold" aria-hidden="true" />

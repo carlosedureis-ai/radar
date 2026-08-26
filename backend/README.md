@@ -36,10 +36,11 @@ segredos; senha do banco, token de serviço e `DATABASE_URL` nunca devem ser ver
 
 ## Criar as tabelas
 
-A migration inicial está em:
+A migration inicial e a extensão de curadoria estão em:
 
 ```text
 ../supabase/migrations/202608260001_radar_core.sql
+../supabase/migrations/202608260002_artist_curation.sql
 ```
 
 Para o primeiro ambiente, abra **SQL Editor** no Supabase, cole a migration e execute uma vez.
@@ -69,6 +70,16 @@ Authorization: Bearer <supabase-access-token>
 
 No primeiro acesso autenticado, o backend cria ou sincroniza o registro correspondente em
 `profiles`. A conexão musical com Spotify é independente do login do Supabase.
+
+## Curadoria de artistas
+
+O painel `/admin/artistas` lista os IDs de artistas encontrados nas escutas, recupera seus nomes
+do histórico autorizado do Spotify e permite aprovar ou marcar cada entrada como inelegível.
+A aprovação reprocessa somente eventos auditados que ainda não receberam XP; a operação é
+idempotente e mantém as janelas antirrepetição e o limite diário.
+
+O acesso depende de `profiles.is_admin = true`. Essa permissão deve ser concedida diretamente no
+banco por uma pessoa responsável pelo ambiente; não existe rota pública para promover contas.
 
 ## Rodar no Windows
 

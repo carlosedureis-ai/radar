@@ -15,6 +15,8 @@ tags:
     description: Cartas e evolução da conta.
   - name: Social
     description: Compartilhamentos públicos sem dados pessoais.
+  - name: Admin
+    description: Curadoria protegida por papel administrativo no servidor.
 paths:
   /health:
     get:
@@ -160,6 +162,58 @@ paths:
       responses:
         "200": { description: Snapshot público sem dados privados }
         "404": { $ref: "#/components/responses/Error" }
+  /v1/admin/artists:
+    get:
+      summary: Listar artistas encontrados nas escutas
+      tags: [Admin]
+      operationId: listAdminArtistCandidates
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Fila de curadoria e contagens agregadas }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+  /v1/admin/artists/refresh:
+    post:
+      summary: Atualizar nomes usando o histórico recente autorizado do administrador
+      tags: [Admin]
+      operationId: refreshAdminArtistCandidates
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Quantidade de artistas atualizados }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/admin/artists/{provider}/{providerArtistId}:
+    put:
+      summary: Catalogar um artista e reprocessar escutas ainda sem XP
+      tags: [Admin]
+      operationId: catalogArtist
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema: { type: string, enum: [spotify] }
+        - in: path
+          name: providerArtistId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, isEmerging, eligibilityStatus]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 120 }
+                isEmerging: { type: boolean }
+                eligibilityStatus: { type: string, enum: [eligible, pending, ineligible] }
+      responses:
+        "200": { description: Artista salvo e resultado do reprocessamento }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
 components:
   securitySchemes:
     bearerAuth:

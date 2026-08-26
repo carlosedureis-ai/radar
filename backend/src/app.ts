@@ -14,6 +14,7 @@ import {
 import { loadConfig, type AppConfig } from "./config.js";
 import { createDatabase, type DatabasePool } from "./db.js";
 import { AppError } from "./errors.js";
+import { catalogArtist, listArtistCandidates, requireAdmin } from "./catalog.js";
 import {
   createShareCard,
   getProgression,
@@ -26,6 +27,7 @@ import {
   disconnectProvider,
   listConnections,
   syncSpotify,
+  refreshSpotifyArtistCandidates,
 } from "./spotify.js";
 
 const oauthCallbackSchema = z.object({
@@ -38,6 +40,15 @@ const providerParamsSchema = z.object({ provider: z.enum(["spotify", "apple", "l
 const listenQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(30),
   before: z.iso.datetime().optional(),
+});
+const adminArtistParamsSchema = z.object({
+  provider: z.enum(["spotify"]),
+  providerArtistId: z.string().min(1).max(128),
+});
+const adminArtistBodySchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  isEmerging: z.boolean(),
+  eligibilityStatus: z.enum(["eligible", "pending", "ineligible"]),
 });
 
 export function sanitizeRequestUrl(url: string): string {
@@ -249,6 +260,44 @@ export async function createApp(options?: {
         eligibilityStatus: row.eligibility_status,
       })),
     };
+  });
+
+  app.get("/v1/admin/artists", async (request) => {
+    const userId = await authenticated(request);
+    await requireAdmin(database, userId);
+    return listArtistCandidates(database);
+  });
+  app.post(
+    "/v1/admin/artists/refresh",
+    { config: { rateLimit: { max: 4, timeWindow: "1 minute" } } },
+    async (request) => {
+      const userId = await authenticated(request);
+      await requireAdmin(database, userId);
+      const result = await database.query<{ provider_artist_id: string }>(
+        `
+          SELECT DISTINCT e.provider_artist_id
+          FROM listening_events e
+          LEFT JOIN artist_candidates c
+            ON c.provider = e.provider AND c.provider_artist_id = e.provider_artist_id
+          WHERE e.provider = 'spotify'
+            AND (c.metadata_refreshed_at IS NULL OR c.metadata_refreshed_at < now() - interval '1 day')
+          ORDER BY e.provider_artist_id LIMIT 200
+        `,
+      );
+      return refreshSpotifyArtistCandidates(
+        database,
+        config,
+        userId,
+        result.rows.map((row) => row.provider_artist_id),
+      );
+    },
+  );
+  app.put("/v1/admin/artists/:provider/:providerArtistId", async (request) => {
+    const userId = await authenticated(request);
+    await requireAdmin(database, userId);
+    const params = parse(adminArtistParamsSchema, request.params);
+    const body = parse(adminArtistBodySchema, request.body);
+    return catalogArtist(database, { ...params, ...body });
   });
 
   app.addHook("onClose", async () => {

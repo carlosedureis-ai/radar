@@ -41,7 +41,7 @@ type ConnectionRow = {
 type RecentlyPlayedResponse = {
   items: Array<{
     played_at: string;
-    track: { id: string | null; artists: Array<{ id: string | null }> };
+    track: { id: string | null; artists: Array<{ id: string | null; name?: string }> };
   }>;
   cursors?: { after?: string };
 };
@@ -289,6 +289,7 @@ export async function syncSpotify(
         provider: "spotify",
         providerTrackId: item.track.id,
         providerArtistId: artistId,
+        ...(item.track.artists[0]?.name ? { providerArtistName: item.track.artists[0].name } : {}),
         playedAt: item.played_at,
       }),
     );
@@ -307,6 +308,51 @@ export async function syncSpotify(
     rejected: results.filter((result) => result.status === "rejected").length,
     duplicate: results.filter((result) => result.status === "duplicate").length,
   };
+}
+
+export async function refreshSpotifyArtistCandidates(
+  database: Queryable,
+  config: AppConfig,
+  userId: string,
+  providerArtistIds: string[],
+): Promise<{ refreshed: number; missing: number }> {
+  if (providerArtistIds.length === 0) return { refreshed: 0, missing: 0 };
+  const connectionResult = await database.query<ConnectionRow>(
+    `
+      SELECT id, access_token_encrypted, refresh_token_encrypted, token_expires_at, last_cursor
+      FROM music_connections WHERE user_id = $1 AND provider = 'spotify' AND status = 'active'
+    `,
+    [userId],
+  );
+  const connection = connectionResult.rows[0];
+  if (!connection) throw new AppError(409, "SPOTIFY_NOT_CONNECTED", "Spotify não está conectado");
+  const token = await validAccessToken(database, config, connection);
+  const targetIds = new Set(providerArtistIds);
+  const recent = await spotifyGet<RecentlyPlayedResponse>(
+    "/me/player/recently-played?limit=50",
+    token,
+  );
+  const artists = new Map<string, string>();
+  for (const item of recent.items) {
+    for (const artist of item.track.artists) {
+      if (artist.id && artist.name && targetIds.has(artist.id)) artists.set(artist.id, artist.name);
+    }
+  }
+  for (const [artistId, name] of artists) {
+      await database.query(
+        `
+          INSERT INTO artist_candidates(
+            provider, provider_artist_id, name, metadata_refreshed_at, updated_at
+          ) VALUES ('spotify', $1, $2, now(), now())
+          ON CONFLICT(provider, provider_artist_id) DO UPDATE SET
+            name = EXCLUDED.name,
+            metadata_refreshed_at = now(),
+            updated_at = now()
+        `,
+        [artistId, name],
+      );
+  }
+  return { refreshed: artists.size, missing: providerArtistIds.length - artists.size };
 }
 
 export async function listConnections(database: Queryable, userId: string): Promise<unknown[]> {

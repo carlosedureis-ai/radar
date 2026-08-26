@@ -1,5 +1,6 @@
-import { CalendarBlank, EnvelopeSimple, SignOut, UserCircle } from "@phosphor-icons/react";
+import { CalendarBlank, EnvelopeSimple, ShieldCheck, SignOut, UserCircle } from "@phosphor-icons/react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { AccountProgress } from "../components/AccountProgress";
 import { LoadingView } from "../components/LoadingView";
@@ -23,6 +24,12 @@ export function AccountPage() {
         </dl>
         <button className="button button-secondary" type="button" disabled={busy} onClick={() => { setBusy(true); void signOut().finally(() => setBusy(false)); }}><SignOut size={20} weight="bold" />{busy ? "Saindo" : "Sair da conta"}</button>
       </section>
+      {me?.isAdmin && (
+        <section className="admin-entry">
+          <div><ShieldCheck size={30} weight="fill" /><div><h2>CURADORIA RADAR</h2><p>Revise artistas encontrados nas sincronizações e reprocese as escutas auditadas.</p></div></div>
+          <Link className="button button-primary" to="/admin/artistas">Abrir painel</Link>
+        </section>
+      )}
       {progression?.rules.some((rule) => rule.provisional) && <p className="provisional-note">As faixas atuais de XP são provisórias e serão validadas antes do lançamento público.</p>}
     </div>
   );

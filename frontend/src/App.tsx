@@ -5,6 +5,7 @@ import { AppShell } from "./components/AppShell";
 import { LoadingView } from "./components/LoadingView";
 
 const AccountPage = lazy(() => import("./pages/AccountPage").then((module) => ({ default: module.AccountPage })));
+const AdminArtistsPage = lazy(() => import("./pages/AdminArtistsPage").then((module) => ({ default: module.AdminArtistsPage })));
 const AuthPage = lazy(() => import("./pages/AuthPage").then((module) => ({ default: module.AuthPage })));
 const CardsPage = lazy(() => import("./pages/CardsPage").then((module) => ({ default: module.CardsPage })));
 const ConnectionsPage = lazy(() => import("./pages/ConnectionsPage").then((module) => ({ default: module.ConnectionsPage })));
@@ -47,6 +48,7 @@ export function App() {
           <Route path="/escutas" element={<ListensPage />} />
           <Route path="/conexoes" element={<ConnectionsPage />} />
           <Route path="/conta" element={<AccountPage />} />
+          <Route path="/admin/artistas" element={<AdminArtistsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

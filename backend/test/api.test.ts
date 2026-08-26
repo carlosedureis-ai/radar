@@ -47,14 +47,19 @@ async function createTestDatabase(): Promise<DatabasePool> {
   memory.public.none("CREATE TABLE auth.users(id uuid PRIMARY KEY, email text UNIQUE)");
   const adapter = memory.adapters.createPg();
   const pool = new adapter.Pool() as unknown as DatabasePool;
-  const migrationPath = fileURLToPath(
-    new URL("../../supabase/migrations/202608260001_radar_core.sql", import.meta.url),
-  );
-  const migration = readFileSync(migrationPath, "utf8").replace(
-    /-- TEST_UNSUPPORTED_BEGIN[\s\S]*?-- TEST_UNSUPPORTED_END/g,
-    "",
-  );
-  await pool.query(migration);
+  for (const migrationName of [
+    "202608260001_radar_core.sql",
+    "202608260002_artist_curation.sql",
+  ]) {
+    const migrationPath = fileURLToPath(
+      new URL(`../../supabase/migrations/${migrationName}`, import.meta.url),
+    );
+    const migration = readFileSync(migrationPath, "utf8").replace(
+      /-- TEST_UNSUPPORTED_BEGIN[\s\S]*?-- TEST_UNSUPPORTED_END/g,
+      "",
+    );
+    await pool.query(migration);
+  }
   return pool;
 }
 
@@ -134,11 +139,84 @@ describe("Radar API with Supabase Auth and PostgreSQL", () => {
       email: "ouvinte@example.com",
       displayName: "Ouvinte Teste",
       accountXp: 0,
+      isAdmin: false,
     });
 
     const unauthorized = await backend.app.inject({ method: "GET", url: "/v1/cards" });
     expect(unauthorized.statusCode).toBe(401);
     expect(unauthorized.json()).toMatchObject({ error: { code: "AUTH_REQUIRED" } });
+  });
+
+  it("limits curation to admins and reprocesses uncataloged listens once", async () => {
+    const user = await createUser("curadoria@example.com");
+    await activateProfile(user);
+    const providerArtistId = `unknown-${randomUUID()}`;
+    await recordListeningEvent(backend.database, user.id, {
+      provider: "spotify",
+      providerTrackId: "waiting-track",
+      providerArtistId,
+      providerArtistName: "Nova Camada",
+      playedAt: "2026-08-23T12:00:00.000Z",
+    });
+    await recordListeningEvent(backend.database, user.id, {
+      provider: "spotify",
+      providerTrackId: "waiting-track",
+      providerArtistId,
+      providerArtistName: "Nova Camada",
+      playedAt: "2026-08-23T12:05:00.000Z",
+    });
+
+    const denied = await backend.app.inject({
+      method: "GET",
+      url: "/v1/admin/artists",
+      headers: auth(user.accessToken),
+    });
+    expect(denied.statusCode).toBe(403);
+    expect(denied.json()).toMatchObject({ error: { code: "ADMIN_REQUIRED" } });
+
+    await backend.database.query("UPDATE profiles SET is_admin = true WHERE id = $1", [user.id]);
+    const candidates = await backend.app.inject({
+      method: "GET",
+      url: "/v1/admin/artists",
+      headers: auth(user.accessToken),
+    });
+    expect(candidates.statusCode).toBe(200);
+    expect(candidates.json()).toMatchObject({
+      summary: { waiting: 1, listensWaiting: 2 },
+      items: [{ providerArtistId, name: "Nova Camada", eligibilityStatus: "uncataloged" }],
+    });
+
+    const approve = () => backend.app.inject({
+      method: "PUT",
+      url: `/v1/admin/artists/spotify/${providerArtistId}`,
+      headers: { ...auth(user.accessToken), "content-type": "application/json" },
+      payload: { name: "Nova Camada", isEmerging: true, eligibilityStatus: "eligible" },
+    });
+    const first = await approve();
+    expect(first.statusCode).toBe(200);
+    expect(first.json()).toMatchObject({ reprocessed: 2, awarded: 1, rejected: 1 });
+    const second = await approve();
+    expect(second.statusCode).toBe(200);
+    expect(second.json()).toMatchObject({ reprocessed: 0, awarded: 0, rejected: 0 });
+
+    const me = await backend.app.inject({
+      method: "GET",
+      url: "/v1/me",
+      headers: auth(user.accessToken),
+    });
+    expect(me.json()).toMatchObject({ accountXp: 15, isAdmin: true });
+    const events = await backend.database.query<{
+      qualified: boolean;
+      xp_awarded: number;
+      rejection_reason: string | null;
+    }>(
+      "SELECT qualified, xp_awarded, rejection_reason FROM listening_events WHERE user_id = $1 ORDER BY played_at",
+      [user.id],
+    );
+    expect(events.rows).toEqual([
+      { qualified: true, xp_awarded: 15, rejection_reason: null },
+      { qualified: false, xp_awarded: 0, rejection_reason: "repeat-too-soon" },
+    ]);
   });
 
   it("creates one profile when a new account loads private routes concurrently", async () => {

@@ -4,7 +4,30 @@ export type RadarUser = {
   displayName: string;
   accountXp: number;
   accountLevel: number;
+  isAdmin: boolean;
   createdAt: string;
+};
+
+export type AdminArtistCandidate = {
+  provider: string;
+  providerArtistId: string;
+  name: string | null;
+  imageUrl: string | null;
+  followers: number | null;
+  popularity: number | null;
+  metadataRefreshedAt: string | null;
+  artistId: string | null;
+  isEmerging: boolean;
+  eligibilityStatus: "uncataloged" | "eligible" | "pending" | "ineligible";
+  listenCount: number;
+  waitingCount: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+};
+
+export type AdminArtistResponse = {
+  items: AdminArtistCandidate[];
+  summary: { total: number; waiting: number; cataloged: number; listensWaiting: number };
 };
 
 export type MusicConnection = {

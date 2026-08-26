@@ -23,6 +23,7 @@ export type NormalizedListen = {
   provider: string;
   providerTrackId: string;
   providerArtistId: string;
+  providerArtistName?: string;
   playedAt: string;
 };
 
@@ -90,6 +91,23 @@ export async function recordListeningEvent(
 
       if (!mapping) {
         rejectionReason = "artist-not-in-catalog";
+        await transaction.query(
+          `
+            INSERT INTO artist_candidates(provider, provider_artist_id, name, updated_at)
+            VALUES ($1, $2, $3, now())
+            ON CONFLICT(provider, provider_artist_id) DO NOTHING
+          `,
+          [listen.provider, listen.providerArtistId, listen.providerArtistName ?? null],
+        );
+        if (listen.providerArtistName) {
+          await transaction.query(
+            `
+              UPDATE artist_candidates SET name = $3, updated_at = now()
+              WHERE provider = $1 AND provider_artist_id = $2
+            `,
+            [listen.provider, listen.providerArtistId, listen.providerArtistName],
+          );
+        }
       } else if (mapping.eligibility_status !== "eligible") {
         rejectionReason = `artist-${mapping.eligibility_status}`;
       } else {
@@ -209,6 +227,172 @@ export async function recordListeningEvent(
     }
     throw error;
   }
+}
+
+export async function reprocessCatalogedEvents(
+  database: DatabasePool,
+  provider: string,
+  providerArtistId: string,
+): Promise<{ reprocessed: number; awarded: number; rejected: number }> {
+  const pending = await database.query<{ id: string }>(
+    `
+      SELECT id FROM listening_events
+      WHERE provider = $1 AND provider_artist_id = $2 AND qualified = false
+        AND xp_awarded = 0
+        AND rejection_reason IN ('artist-not-in-catalog', 'artist-pending', 'artist-ineligible')
+      ORDER BY played_at, id
+    `,
+    [provider, providerArtistId],
+  );
+  let reprocessed = 0;
+  let awarded = 0;
+
+  for (const candidate of pending.rows) {
+    const result = await inTransaction(database, async (transaction) => {
+      const eventResult = await transaction.query<{
+        id: string;
+        user_id: string;
+        provider_track_id: string;
+        played_at: Date | string;
+        qualified: boolean;
+        xp_awarded: number;
+        rejection_reason: string | null;
+      }>(
+        `
+          SELECT id, user_id, provider_track_id, played_at, qualified, xp_awarded,
+                 rejection_reason
+          FROM listening_events WHERE id = $1 FOR UPDATE
+        `,
+        [candidate.id],
+      );
+      const event = eventResult.rows[0];
+      if (
+        !event ||
+        event.qualified ||
+        Number(event.xp_awarded) !== 0 ||
+        !["artist-not-in-catalog", "artist-pending", "artist-ineligible"].includes(
+          event.rejection_reason ?? "",
+        )
+      ) {
+        return "skipped" as const;
+      }
+
+      const mappingResult = await transaction.query<ArtistMappingRow>(
+        `
+          SELECT a.id AS artist_id, a.name, a.is_emerging, a.eligibility_status
+          FROM artist_provider_ids p JOIN artists a ON a.id = p.artist_id
+          WHERE p.provider = $1 AND p.provider_artist_id = $2
+        `,
+        [provider, providerArtistId],
+      );
+      const mapping = mappingResult.rows[0];
+      if (!mapping) return "skipped" as const;
+
+      if (mapping.eligibility_status !== "eligible") {
+        await transaction.query(
+          `
+            UPDATE listening_events SET artist_id = $1, rejection_reason = $2
+            WHERE id = $3
+          `,
+          [mapping.artist_id, `artist-${mapping.eligibility_status}`, event.id],
+        );
+        return "rejected" as const;
+      }
+
+      const playedAt = new Date(event.played_at);
+      const playedAtIso = playedAt.toISOString();
+      const repeatWindowStart = new Date(playedAt.getTime() - REPEAT_WINDOW_MS).toISOString();
+      const repeatWindowEnd = new Date(playedAt.getTime() + REPEAT_WINDOW_MS).toISOString();
+      const repeated = await transaction.query(
+        `
+          SELECT id FROM listening_events
+          WHERE user_id = $1 AND artist_id = $2 AND provider = $3
+            AND provider_track_id = $4 AND qualified = true
+            AND played_at >= $5 AND played_at <= $6 AND id <> $7
+          LIMIT 1
+        `,
+        [
+          event.user_id,
+          mapping.artist_id,
+          provider,
+          event.provider_track_id,
+          repeatWindowStart,
+          repeatWindowEnd,
+          event.id,
+        ],
+      );
+      const dailyResult = await transaction.query<{ total: number | string }>(
+        `
+          SELECT COALESCE(SUM(xp_awarded), 0) AS total FROM listening_events
+          WHERE user_id = $1 AND artist_id = $2
+            AND played_at::date = $3::timestamptz::date
+        `,
+        [event.user_id, mapping.artist_id, playedAtIso],
+      );
+      const dailyXp = Number(dailyResult.rows[0]?.total ?? 0);
+      if (repeated.rows[0] || dailyXp >= DAILY_ARTIST_XP_CAP) {
+        await transaction.query(
+          `
+            UPDATE listening_events SET artist_id = $1, rejection_reason = $2
+            WHERE id = $3
+          `,
+          [
+            mapping.artist_id,
+            repeated.rows[0] ? "repeat-too-soon" : "daily-artist-cap",
+            event.id,
+          ],
+        );
+        return "rejected" as const;
+      }
+
+      const proposedXp = BASE_LISTEN_XP + (mapping.is_emerging ? EMERGING_ARTIST_BONUS : 0);
+      const xpAwarded = Math.min(proposedXp, DAILY_ARTIST_XP_CAP - dailyXp);
+      await transaction.query(
+        `
+          UPDATE listening_events SET artist_id = $1, qualified = true,
+            xp_awarded = $2, rejection_reason = NULL
+          WHERE id = $3
+        `,
+        [mapping.artist_id, xpAwarded, event.id],
+      );
+      const cardResult = await transaction.query<{ xp: number }>(
+        `
+          INSERT INTO artist_cards(user_id, artist_id, xp, listen_count, level)
+          VALUES ($1, $2, $3, 1, 1)
+          ON CONFLICT(user_id, artist_id) DO UPDATE SET
+            xp = artist_cards.xp + EXCLUDED.xp,
+            listen_count = artist_cards.listen_count + 1,
+            updated_at = now()
+          RETURNING xp
+        `,
+        [event.user_id, mapping.artist_id, xpAwarded],
+      );
+      const cardXp = Number(cardResult.rows[0]?.xp ?? 0);
+      const cardRule = await levelForXp(transaction, "card", cardXp);
+      await transaction.query(
+        "UPDATE artist_cards SET level = $1 WHERE user_id = $2 AND artist_id = $3",
+        [cardRule.level, event.user_id, mapping.artist_id],
+      );
+      const accountResult = await transaction.query<{ account_xp: number }>(
+        `
+          UPDATE profiles SET account_xp = account_xp + $1, updated_at = now()
+          WHERE id = $2 RETURNING account_xp
+        `,
+        [xpAwarded, event.user_id],
+      );
+      const accountXp = Number(accountResult.rows[0]?.account_xp ?? 0);
+      const accountRule = await levelForXp(transaction, "account", accountXp);
+      await transaction.query("UPDATE profiles SET account_level = $1 WHERE id = $2", [
+        accountRule.level,
+        event.user_id,
+      ]);
+      return "awarded" as const;
+    });
+    if (result === "skipped") continue;
+    reprocessed += 1;
+    if (result === "awarded") awarded += 1;
+  }
+  return { reprocessed, awarded, rejected: reprocessed - awarded };
 }
 
 export async function listCards(database: Queryable, userId: string): Promise<unknown[]> {
