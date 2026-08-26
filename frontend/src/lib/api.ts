@@ -1,4 +1,5 @@
 import { appConfig } from "./config";
+import { supabase } from "./supabase";
 
 type ApiErrorBody = {
   error?: { code?: string; message?: string; requestId?: string };
@@ -31,6 +32,9 @@ export async function apiRequest<T>(
   const response = await fetch(`${appConfig.apiUrl}${path}`, { ...init, headers });
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as ApiErrorBody;
+    if (response.status === 401 && accessToken && supabase) {
+      await supabase.auth.signOut({ scope: "local" });
+    }
     throw new RadarApiError(response.status, body);
   }
   if (response.status === 204) return undefined as T;

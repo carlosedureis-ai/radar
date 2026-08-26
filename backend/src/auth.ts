@@ -91,7 +91,9 @@ export async function ensureProfile(database: Queryable, identity: AuthIdentity)
   const inserted = await database.query(
     `
       INSERT INTO profiles(id, email, display_name)
-      VALUES ($1, $2, $3)
+      SELECT $1, $2, $3
+      FROM auth.users
+      WHERE id = $1
       ON CONFLICT DO NOTHING
     `,
     [identity.id, identity.email, identity.displayName],
@@ -111,6 +113,14 @@ export async function ensureProfile(database: Queryable, identity: AuthIdentity)
     [identity.id, identity.email, identity.displayName],
   );
   if (updated.rowCount !== 1) {
+    const authUser = await database.query("SELECT 1 FROM auth.users WHERE id = $1", [identity.id]);
+    if (authUser.rowCount !== 1) {
+      throw new AppError(
+        401,
+        "AUTH_USER_NOT_FOUND",
+        "Sua sessão não é mais válida; entre novamente",
+      );
+    }
     throw new AppError(
       409,
       "PROFILE_IDENTITY_CONFLICT",

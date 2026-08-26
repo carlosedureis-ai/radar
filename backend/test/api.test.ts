@@ -178,6 +178,30 @@ describe("Radar API with Supabase Auth and PostgreSQL", () => {
     expect(response.json()).toMatchObject({ error: { code: "INVALID_ACCESS_TOKEN" } });
   });
 
+  it("rejects a valid token whose Supabase user was removed", async () => {
+    const id = randomUUID();
+    const accessToken = `stale-token-${randomUUID()}`;
+    identities.set(accessToken, {
+      id,
+      email: "removido@example.com",
+      displayName: "Usuário removido",
+    });
+
+    const response = await backend.app.inject({
+      method: "GET",
+      url: "/v1/me",
+      headers: auth(accessToken),
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toMatchObject({
+      error: {
+        code: "AUTH_USER_NOT_FOUND",
+        message: "Sua sessão não é mais válida; entre novamente",
+      },
+    });
+  });
+
   it("verifies Supabase issuer, audience, role and asymmetric signature", async () => {
     const userId = randomUUID();
     const { privateKey, publicKey } = await generateKeyPair("ES256");
