@@ -219,6 +219,20 @@ describe("Radar API with Supabase Auth and PostgreSQL", () => {
     ]);
   });
 
+  it("allows the browser preflight required by artist approval", async () => {
+    const response = await backend.app.inject({
+      method: "OPTIONS",
+      url: "/v1/admin/artists/spotify/provider-artist",
+      headers: {
+        origin: "http://127.0.0.1:5173",
+        "access-control-request-method": "PUT",
+        "access-control-request-headers": "authorization,content-type",
+      },
+    });
+    expect(response.statusCode).toBe(204);
+    expect(response.headers["access-control-allow-methods"]).toContain("PUT");
+  });
+
   it("creates one profile when a new account loads private routes concurrently", async () => {
     const user = await createUser("primeiro-login@example.com");
     const routes = [

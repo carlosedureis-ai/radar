@@ -118,7 +118,7 @@ export async function createApp(options?: {
   });
   await app.register(cors, {
     origin: config.corsOrigins,
-    methods: ["GET", "POST", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Authorization", "Content-Type", "X-Request-ID"],
     credentials: false,
     maxAge: 600,
