@@ -250,6 +250,8 @@ Os componentes são táteis e confiantes: áreas claras, contraste direto, borda
 
 A carta de artista é a assinatura material do sistema. Cada nível mantém imagem e nome como protagonistas e acrescenta uma faixa cromática, altura, informação, aba, selo ou acetato; raridade é conquistada por escuta e ações legítimas, nunca comprada. Valores de XP em artefatos conceituais são ilustrativos até validação de produto.
 
+Na coleção, cor e quantidade de camadas são determinadas pelo nível da carta, nunca pela posição aleatória na grade. A estante oferece busca, filtros e ordenação sem reduzir as cartas a linhas genéricas; cada carta mostra nível, nome da etapa, XP, escutas válidas e o próximo avanço antes da ação de compartilhar.
+
 ### Account Progress
 
 O nível de conta usa número condensado dominante, barra de progresso legível, texto numérico explícito e selos de especialização. A barra nunca comunica estado apenas pela cor: exponha rótulo, valor e atributos acessíveis de progresso.

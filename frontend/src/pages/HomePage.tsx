@@ -43,7 +43,7 @@ export function HomePage() {
         </div>
         {cards.length ? (
           <div className="card-grid card-grid--preview">
-            {cards.slice(0, 2).map((card) => <ArtistCardView key={card.artistId} card={card} />)}
+            {cards.slice(0, 2).map((card) => <ArtistCardView key={card.artistId} card={card} rules={progression?.rules} />)}
           </div>
         ) : (
           <EmptyState icon={CardsThree} title="Suas cartas começam com uma escuta" body="Depois da primeira sincronização válida, cada artista reconhecido ganha sua própria carta." />
