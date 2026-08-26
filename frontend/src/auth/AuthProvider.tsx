@@ -9,9 +9,12 @@ type AuthContextValue = {
   user: User | null;
   loading: boolean;
   configured: boolean;
+  recoveryMode: boolean;
   signIn(email: string, password: string): Promise<void>;
   signUp(input: SignUpInput): Promise<{ needsEmailConfirmation: boolean }>;
   sendPasswordReset(email: string): Promise<void>;
+  updatePassword(password: string): Promise<void>;
+  finishPasswordRecovery(): void;
   signOut(): Promise<void>;
 };
 
@@ -20,6 +23,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(Boolean(supabase));
+  const [recoveryMode, setRecoveryMode] = useState(false);
 
   useEffect(() => {
     if (!supabase) return;
@@ -30,8 +34,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     });
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (mounted) {
+        if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
+        if (event === "SIGNED_OUT") setRecoveryMode(false);
         setSession(nextSession);
         setLoading(false);
       }
@@ -48,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: session?.user ?? null,
       loading,
       configured: Boolean(supabase),
+      recoveryMode,
       async signIn(email, password) {
         if (!supabase) throw new Error("Supabase Auth ainda não foi configurado.");
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -66,9 +73,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async sendPasswordReset(email) {
         if (!supabase) throw new Error("Supabase Auth ainda não foi configurado.");
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/conta`,
+          redirectTo: `${window.location.origin}/redefinir-senha`,
         });
         if (error) throw error;
+      },
+      async updatePassword(password) {
+        if (!supabase) throw new Error("Supabase Auth ainda não foi configurado.");
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) {
+          throw new Error("Este link de recuperação expirou. Solicite um novo link.");
+        }
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+      },
+      finishPasswordRecovery() {
+        setRecoveryMode(false);
+        setSession(null);
+        if (supabase) void supabase.auth.signOut({ scope: "local" });
       },
       async signOut() {
         if (!supabase) return;
@@ -76,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
       },
     }),
-    [loading, session],
+    [loading, recoveryMode, session],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

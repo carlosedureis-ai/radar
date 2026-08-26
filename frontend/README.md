@@ -12,6 +12,10 @@ Copy-Item .env.example .env
 Preencha apenas `VITE_SUPABASE_PUBLISHABLE_KEY` com a chave pública do projeto. Não use
 `service_role` no frontend. Depois:
 
+No painel do Supabase Auth, inclua `http://127.0.0.1:5174/redefinir-senha` em **Redirect URLs**.
+Em produção, cadastre também a URL HTTPS equivalente do aplicativo. O link enviado por
+**Esqueci a senha** abre essa rota para o usuário definir e confirmar a nova senha.
+
 ```powershell
 pnpm install --frozen-lockfile
 pnpm dev

@@ -1,5 +1,6 @@
 import { ArrowRight, CheckCircle, Key, UserPlus } from "@phosphor-icons/react";
 import { useState, type FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { Brand } from "../components/Brand";
 
@@ -7,7 +8,10 @@ type Mode = "signin" | "signup" | "reset";
 
 export function AuthPage() {
   const { configured, signIn, signUp, sendPasswordReset } = useAuth();
-  const [mode, setMode] = useState<Mode>("signin");
+  const [searchParams] = useSearchParams();
+  const [mode, setMode] = useState<Mode>(() =>
+    searchParams.get("modo") === "recuperar" ? "reset" : "signin",
+  );
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,7 +32,7 @@ export function AuthPage() {
       }
       if (mode === "reset") {
         await sendPasswordReset(email);
-        setNotice("Enviamos um link de recuperação para o seu e-mail.");
+        setNotice("Se houver uma conta com esse e-mail, você receberá um link para criar uma nova senha.");
       }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Não foi possível continuar.");
@@ -61,7 +65,7 @@ export function AuthPage() {
           <div className="auth-heading">
             {mode === "signup" ? <UserPlus size={28} weight="bold" /> : <Key size={28} weight="bold" />}
             <h2 id="auth-title">{title}</h2>
-            <p>{mode === "reset" ? "Use o e-mail cadastrado." : "Seu progresso fica ligado a uma conta segura."}</p>
+            <p>{mode === "reset" ? "Enviaremos um link seguro para o e-mail cadastrado." : "Seu progresso fica ligado a uma conta segura."}</p>
           </div>
 
           {!configured && (
@@ -90,7 +94,7 @@ export function AuthPage() {
               </label>
             )}
             {error && <p className="form-message form-message--error" role="alert">{error}</p>}
-            {notice && <p className="form-message form-message--success"><CheckCircle size={20} weight="fill" />{notice}</p>}
+            {notice && <p className="form-message form-message--success" role="status"><CheckCircle size={20} weight="fill" />{notice}</p>}
             <button className="button button-primary" type="submit" disabled={busy || !configured}>
               {busy ? "Aguarde" : submitLabel}
               {!busy && <ArrowRight size={20} weight="bold" aria-hidden="true" />}

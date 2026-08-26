@@ -11,6 +11,7 @@ const ConnectionsPage = lazy(() => import("./pages/ConnectionsPage").then((modul
 const HomePage = lazy(() => import("./pages/HomePage").then((module) => ({ default: module.HomePage })));
 const ListensPage = lazy(() => import("./pages/ListensPage").then((module) => ({ default: module.ListensPage })));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage").then((module) => ({ default: module.NotFoundPage })));
+const PasswordResetPage = lazy(() => import("./pages/PasswordResetPage").then((module) => ({ default: module.PasswordResetPage })));
 const SharePage = lazy(() => import("./pages/SharePage").then((module) => ({ default: module.SharePage })));
 
 function PrivateApp() {
@@ -27,11 +28,18 @@ function AuthRoute() {
   return <AuthPage />;
 }
 
+function PasswordResetRoute() {
+  const { loading } = useAuth();
+  if (loading) return <LoadingView label="Validando seu link de recuperação" />;
+  return <PasswordResetPage />;
+}
+
 export function App() {
   return (
     <Suspense fallback={<LoadingView />}>
       <Routes>
         <Route path="/entrar" element={<AuthRoute />} />
+        <Route path="/redefinir-senha" element={<PasswordResetRoute />} />
         <Route path="/compartilhar/:token" element={<SharePage />} />
         <Route element={<PrivateApp />}>
           <Route path="/" element={<HomePage />} />
