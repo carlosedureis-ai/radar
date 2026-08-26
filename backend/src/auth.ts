@@ -88,19 +88,35 @@ export async function requireUser(
 }
 
 export async function ensureProfile(database: Queryable, identity: AuthIdentity): Promise<void> {
-  await database.query(
+  const inserted = await database.query(
     `
       INSERT INTO profiles(id, email, display_name)
       VALUES ($1, $2, $3)
-      ON CONFLICT(id) DO UPDATE SET
-        email = COALESCE(EXCLUDED.email, profiles.email),
-        display_name = CASE
-          WHEN profiles.display_name = '' THEN EXCLUDED.display_name
-          ELSE profiles.display_name
-        END
+      ON CONFLICT DO NOTHING
     `,
     [identity.id, identity.email, identity.displayName],
   );
+  if (inserted.rowCount === 1) return;
+
+  const updated = await database.query(
+    `
+      UPDATE profiles SET
+        email = COALESCE($2, profiles.email),
+        display_name = CASE
+          WHEN profiles.display_name = '' THEN $3
+          ELSE profiles.display_name
+        END
+      WHERE id = $1
+    `,
+    [identity.id, identity.email, identity.displayName],
+  );
+  if (updated.rowCount !== 1) {
+    throw new AppError(
+      409,
+      "PROFILE_IDENTITY_CONFLICT",
+      "Este e-mail já está associado a outra identidade",
+    );
+  }
 }
 
 export async function getUser(database: Queryable, userId: string): Promise<PublicUser> {

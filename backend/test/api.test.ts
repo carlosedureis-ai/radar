@@ -141,6 +141,33 @@ describe("Radar API with Supabase Auth and PostgreSQL", () => {
     expect(unauthorized.json()).toMatchObject({ error: { code: "AUTH_REQUIRED" } });
   });
 
+  it("creates one profile when a new account loads private routes concurrently", async () => {
+    const user = await createUser("primeiro-login@example.com");
+    const routes = [
+      "/v1/me",
+      "/v1/progression",
+      "/v1/music/connections",
+      "/v1/cards",
+      "/v1/listens",
+    ];
+    const responses = await Promise.all(
+      routes.map((url) =>
+        backend.app.inject({
+          method: "GET",
+          url,
+          headers: auth(user.accessToken),
+        }),
+      ),
+    );
+
+    expect(responses.map((response) => response.statusCode)).toEqual([200, 200, 200, 200, 200]);
+    const profiles = await backend.database.query<{ count: number }>(
+      "SELECT count(*)::int AS count FROM profiles WHERE id = $1",
+      [user.id],
+    );
+    expect(profiles.rows[0]?.count).toBe(1);
+  });
+
   it("rejects an unknown Supabase access token", async () => {
     const response = await backend.app.inject({
       method: "GET",
