@@ -1,78 +1,34 @@
 openapi: 3.1.0
 info:
   title: Radar Backend API
-  version: 0.1.0
+  version: 0.2.0
   description: API MVP para escutas externas, cartas de artistas e progressão do ouvinte.
 servers:
   - url: http://127.0.0.1:3333
     description: Ambiente local autorizado
 tags:
-  - name: Auth
+  - name: Account
+    description: Perfil associado à identidade autenticada no Supabase.
   - name: Music
+    description: Conexões musicais e escutas verificadas fora do Radar.
   - name: Progression
+    description: Cartas e evolução da conta.
   - name: Social
+    description: Compartilhamentos públicos sem dados pessoais.
 paths:
   /health:
     get:
+      summary: Verificar disponibilidade da API e do PostgreSQL
       operationId: health
+      security: []
       responses:
         "200":
           description: Serviço disponível
-  /v1/auth/register:
-    post:
-      tags: [Auth]
-      operationId: register
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RegisterInput"
-      responses:
-        "201": { description: Conta criada }
-        "400": { $ref: "#/components/responses/Error" }
-        "409": { $ref: "#/components/responses/Error" }
-  /v1/auth/login:
-    post:
-      tags: [Auth]
-      operationId: login
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/LoginInput"
-      responses:
-        "200": { description: Sessão criada }
-        "401": { $ref: "#/components/responses/Error" }
-  /v1/auth/refresh:
-    post:
-      tags: [Auth]
-      operationId: refreshSession
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RefreshInput"
-      responses:
-        "200": { description: Sessão rotacionada }
-        "401": { $ref: "#/components/responses/Error" }
-  /v1/auth/logout:
-    post:
-      tags: [Auth]
-      operationId: logout
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RefreshInput"
-      responses:
-        "204": { description: Sessão revogada }
+        "503": { $ref: "#/components/responses/Error" }
   /v1/me:
     get:
-      tags: [Auth]
+      summary: Consultar o perfil autenticado
+      tags: [Account]
       operationId: getMe
       security: [{ bearerAuth: [] }]
       responses:
@@ -80,23 +36,29 @@ paths:
         "401": { $ref: "#/components/responses/Error" }
   /v1/music/connections:
     get:
+      summary: Listar conexões musicais do usuário
       tags: [Music]
       operationId: listMusicConnections
       security: [{ bearerAuth: [] }]
       responses:
         "200": { description: Conexões autorizadas }
+        "401": { $ref: "#/components/responses/Error" }
   /v1/music/spotify/authorize:
     post:
+      summary: Iniciar autorização Spotify com PKCE
       tags: [Music]
       operationId: authorizeSpotify
       security: [{ bearerAuth: [] }]
       responses:
         "200": { description: URL OAuth com PKCE }
+        "401": { $ref: "#/components/responses/Error" }
         "503": { $ref: "#/components/responses/Error" }
   /v1/music/spotify/callback:
     get:
+      summary: Concluir autorização Spotify
       tags: [Music]
       operationId: spotifyCallback
+      security: []
       parameters:
         - in: query
           name: code
@@ -112,14 +74,17 @@ paths:
         "409": { $ref: "#/components/responses/Error" }
   /v1/music/spotify/sync:
     post:
+      summary: Sincronizar escutas recentes do Spotify
       tags: [Music]
       operationId: syncSpotify
       security: [{ bearerAuth: [] }]
       responses:
         "200": { description: Escutas sincronizadas }
+        "401": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
   /v1/music/connections/{provider}:
     delete:
+      summary: Desconectar uma plataforma musical
       tags: [Music]
       operationId: disconnectProvider
       security: [{ bearerAuth: [] }]
@@ -130,9 +95,11 @@ paths:
           schema: { type: string, enum: [spotify, apple, lastfm] }
       responses:
         "204": { description: Conexão removida }
+        "401": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
   /v1/listens:
     get:
+      summary: Listar escutas auditáveis do usuário
       tags: [Music]
       operationId: listListeningEvents
       security: [{ bearerAuth: [] }]
@@ -145,22 +112,28 @@ paths:
           schema: { type: string, format: date-time }
       responses:
         "200": { description: Histórico normalizado }
+        "401": { $ref: "#/components/responses/Error" }
   /v1/cards:
     get:
+      summary: Listar cartas do usuário
       tags: [Progression]
       operationId: listCards
       security: [{ bearerAuth: [] }]
       responses:
         "200": { description: Cartas do usuário autenticado }
+        "401": { $ref: "#/components/responses/Error" }
   /v1/progression:
     get:
+      summary: Consultar progressão e regras provisórias
       tags: [Progression]
       operationId: getProgression
       security: [{ bearerAuth: [] }]
       responses:
         "200": { description: Conta e regras provisórias }
+        "401": { $ref: "#/components/responses/Error" }
   /v1/cards/{artistId}/share:
     post:
+      summary: Criar um compartilhamento da própria carta
       tags: [Social]
       operationId: shareCard
       security: [{ bearerAuth: [] }]
@@ -171,11 +144,14 @@ paths:
           schema: { type: string, format: uuid }
       responses:
         "201": { description: Snapshot compartilhável criado }
+        "401": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
   /v1/shares/{token}:
     get:
+      summary: Consultar uma carta compartilhada publicamente
       tags: [Social]
       operationId: getPublicShare
+      security: []
       parameters:
         - in: path
           name: token
@@ -189,29 +165,8 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: JWT
+      bearerFormat: Supabase JWT
   schemas:
-    RegisterInput:
-      type: object
-      additionalProperties: false
-      required: [email, displayName, password]
-      properties:
-        email: { type: string, format: email, maxLength: 254 }
-        displayName: { type: string, minLength: 2, maxLength: 60 }
-        password: { type: string, minLength: 12, maxLength: 128 }
-    LoginInput:
-      type: object
-      additionalProperties: false
-      required: [email, password]
-      properties:
-        email: { type: string, format: email }
-        password: { type: string }
-    RefreshInput:
-      type: object
-      additionalProperties: false
-      required: [refreshToken]
-      properties:
-        refreshToken: { type: string, minLength: 20, maxLength: 256 }
     Error:
       type: object
       required: [error]

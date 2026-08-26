@@ -17,5 +17,10 @@ if not exist "node_modules" (
   if errorlevel 1 exit /b 1
 )
 
+if not exist ".env" (
+  echo Crie backend\.env a partir de .env.example e configure DATABASE_URL.
+  exit /b 1
+)
+
 echo Radar Backend: http://127.0.0.1:3333
-"%RADAR_NODE%" --env-file-if-exists=.env --import tsx src/server.ts
+"%RADAR_NODE%" --env-file=.env --import tsx src/server.ts

@@ -3,12 +3,12 @@
 Rede social musical em desenvolvimento na qual escutas autorizadas em serviços externos viram
 progresso, cartas evolutivas de artistas e histórias compartilháveis. O Radar não reproduz música.
 
-> **Status:** MVP local. O nome Radar é provisório e ainda precisa de validação de marca, domínio e
-> lojas. Não há integração comercial ou parceria confirmada com plataformas musicais.
+> **Status:** backend migrado para Supabase Auth e PostgreSQL, aguardando aplicação da migration no
+> projeto remoto. O nome Radar continua provisório e não há parceria confirmada com plataformas.
 
 ## O que existe neste repositório
 
-- Backend TypeScript/Fastify com autenticação, Spotify OAuth/PKCE, escutas, XP, cartas e conta.
+- Backend TypeScript/Fastify com Supabase Auth, PostgreSQL, Spotify OAuth/PKCE, XP e cartas.
 - Testes de integração, contrato OpenAPI e controles de segurança.
 - Identidade visual “Camadas Vivas”, logos, tokens, fontes e guia interativo.
 - Documentos de produto e design que registram as decisões aprovadas.
@@ -18,6 +18,7 @@ progresso, cartas evolutivas de artistas e histórias compartilháveis. O Radar 
 ```text
 .
 ├── backend/                  API e testes
+├── supabase/migrations/      schema PostgreSQL versionado
 ├── outputs/                  identidade visual e ativos versionáveis
 ├── .impeccable/design.json   sidecar do sistema visual
 ├── DESIGN.md                 regras normativas de design
@@ -32,6 +33,7 @@ progresso, cartas evolutivas de artistas e histórias compartilháveis. O Radar 
 cd backend
 Copy-Item .env.example .env
 pnpm install --frozen-lockfile
+pnpm db:check
 pnpm dev
 ```
 
@@ -47,11 +49,11 @@ pnpm build
 pnpm audit --prod
 ```
 
-## Configuração musical
+## Supabase e configuração musical
 
-O backend funciona sem credenciais externas, mas a conexão real com Spotify exige
-`SPOTIFY_CLIENT_ID` e uma redirect URI cadastrada no painel da plataforma. Nunca coloque chaves ou
-tokens no Git. Use `backend/.env.example` como referência.
+O backend exige `DATABASE_URL` do Supabase no arquivo local `backend/.env`. Cadastro e sessões são
+gerenciados pelo Supabase Auth. A conexão musical real exige também `SPOTIFY_CLIENT_ID` e uma
+redirect URI cadastrada no painel do Spotify. Nunca coloque senhas, chaves ou tokens no Git.
 
 ## Identidade visual
 

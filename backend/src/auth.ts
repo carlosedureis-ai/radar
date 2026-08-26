@@ -1,198 +1,117 @@
-import { randomUUID } from "node:crypto";
 import type { FastifyRequest } from "fastify";
-import { jwtVerify, SignJWT } from "jose";
+import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from "jose";
+import { z } from "zod";
 import type { AppConfig } from "./config.js";
-import type { SqliteDatabase } from "./db.js";
-import { inTransaction } from "./db.js";
+import type { Queryable } from "./db.js";
 import { AppError } from "./errors.js";
-import { hashPassword, hashToken, randomToken, verifyPassword } from "./security.js";
 
-const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
-const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-const ISSUER = "radar-api";
-const AUDIENCE = "radar-app";
-
-type UserRow = {
+export type AuthIdentity = {
   id: string;
-  email: string;
-  display_name: string;
-  password_hash: string;
-  password_salt: string;
-  account_xp: number;
-  account_level: number;
-  created_at: string;
+  email: string | null;
+  displayName: string;
 };
 
-type SessionRow = {
-  id: string;
-  user_id: string;
-  expires_at: string;
-  revoked_at: string | null;
-};
+export type TokenVerifier = (token: string) => Promise<AuthIdentity>;
 
 export type PublicUser = {
   id: string;
-  email: string;
+  email: string | null;
   displayName: string;
   accountXp: number;
   accountLevel: number;
   createdAt: string;
 };
 
-export type AuthTokens = {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
+type ProfileRow = {
+  id: string;
+  email: string | null;
+  display_name: string;
+  account_xp: number;
+  account_level: number;
+  created_at: Date | string;
 };
 
-function publicUser(user: UserRow): PublicUser {
+function metadataDisplayName(metadata: unknown, email: string | null): string {
+  if (metadata && typeof metadata === "object") {
+    const value = (metadata as Record<string, unknown>).display_name;
+    if (typeof value === "string" && value.trim().length >= 2) return value.trim().slice(0, 60);
+  }
+  const emailPrefix = email?.split("@")[0]?.trim();
+  return emailPrefix && emailPrefix.length >= 2 ? emailPrefix.slice(0, 60) : "Ouvinte Radar";
+}
+
+function toPublicUser(row: ProfileRow): PublicUser {
   return {
-    id: user.id,
-    email: user.email,
-    displayName: user.display_name,
-    accountXp: user.account_xp,
-    accountLevel: user.account_level,
-    createdAt: user.created_at,
+    id: row.id,
+    email: row.email,
+    displayName: row.display_name,
+    accountXp: Number(row.account_xp),
+    accountLevel: Number(row.account_level),
+    createdAt: new Date(row.created_at).toISOString(),
   };
 }
 
-async function accessToken(userId: string, config: AppConfig): Promise<string> {
-  return new SignJWT({ scope: "user" })
-    .setProtectedHeader({ alg: "HS256", typ: "JWT" })
-    .setSubject(userId)
-    .setIssuer(ISSUER)
-    .setAudience(AUDIENCE)
-    .setIssuedAt()
-    .setExpirationTime(`${ACCESS_TOKEN_TTL_SECONDS}s`)
-    .sign(config.jwtSecret);
-}
-
-async function createSession(
-  database: SqliteDatabase,
+export function createSupabaseTokenVerifier(
   config: AppConfig,
-  userId: string,
-): Promise<AuthTokens> {
-  const refreshToken = randomToken();
-  const now = new Date();
-  database
-    .prepare(`
-      INSERT INTO refresh_sessions(id, user_id, token_hash, expires_at, created_at)
-      VALUES (?, ?, ?, ?, ?)
-    `)
-    .run(
-      randomUUID(),
-      userId,
-      hashToken(refreshToken),
-      new Date(now.getTime() + REFRESH_TOKEN_TTL_MS).toISOString(),
-      now.toISOString(),
-    );
-  return {
-    accessToken: await accessToken(userId, config),
-    refreshToken,
-    expiresIn: ACCESS_TOKEN_TTL_SECONDS,
+  verificationKey?: JWTVerifyGetKey,
+): TokenVerifier {
+  const issuer = `${config.supabaseUrl}/auth/v1`;
+  const jwks = verificationKey ?? createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
+  return async (token: string): Promise<AuthIdentity> => {
+    try {
+      const { payload } = await jwtVerify(token, jwks, {
+        issuer,
+        audience: "authenticated",
+      });
+      const id = z.uuid().parse(payload.sub);
+      if (payload.role !== "authenticated") throw new Error("Unexpected role");
+      const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : null;
+      return {
+        id,
+        email,
+        displayName: metadataDisplayName(payload.user_metadata, email),
+      };
+    } catch {
+      throw new AppError(401, "INVALID_ACCESS_TOKEN", "Token de acesso inválido ou expirado");
+    }
   };
 }
 
-export async function registerUser(
-  database: SqliteDatabase,
-  config: AppConfig,
-  input: { email: string; displayName: string; password: string },
-): Promise<{ user: PublicUser; tokens: AuthTokens }> {
-  const normalizedEmail = input.email.trim().toLowerCase();
-  const existing = database.prepare("SELECT id FROM users WHERE email = ?").get(normalizedEmail);
-  if (existing) throw new AppError(409, "EMAIL_IN_USE", "Este e-mail já está cadastrado");
-
-  const id = randomUUID();
-  const createdAt = new Date().toISOString();
-  const password = hashPassword(input.password);
-  database
-    .prepare(`
-      INSERT INTO users(id, email, display_name, password_hash, password_salt, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `)
-    .run(id, normalizedEmail, input.displayName.trim(), password.hash, password.salt, createdAt);
-
-  const user = getUser(database, id);
-  return { user, tokens: await createSession(database, config, id) };
-}
-
-export async function loginUser(
-  database: SqliteDatabase,
-  config: AppConfig,
-  input: { email: string; password: string },
-): Promise<{ user: PublicUser; tokens: AuthTokens }> {
-  const row = database
-    .prepare("SELECT * FROM users WHERE email = ?")
-    .get(input.email.trim().toLowerCase()) as UserRow | undefined;
-  if (!row || !verifyPassword(input.password, row.password_salt, row.password_hash)) {
-    throw new AppError(401, "INVALID_CREDENTIALS", "E-mail ou senha inválidos");
-  }
-  return { user: publicUser(row), tokens: await createSession(database, config, row.id) };
-}
-
-export async function rotateRefreshToken(
-  database: SqliteDatabase,
-  config: AppConfig,
-  refreshToken: string,
-): Promise<AuthTokens> {
-  const tokenHash = hashToken(refreshToken);
-  const session = database
-    .prepare(`
-      SELECT id, user_id, expires_at, revoked_at
-      FROM refresh_sessions WHERE token_hash = ?
-    `)
-    .get(tokenHash) as SessionRow | undefined;
-  if (!session || session.revoked_at || new Date(session.expires_at).getTime() <= Date.now()) {
-    throw new AppError(401, "INVALID_REFRESH_TOKEN", "Sessão inválida ou expirada");
-  }
-
-  database.prepare("UPDATE refresh_sessions SET revoked_at = ? WHERE id = ?").run(
-    new Date().toISOString(),
-    session.id,
-  );
-  return createSession(database, config, session.user_id);
-}
-
-export function revokeRefreshToken(database: SqliteDatabase, refreshToken: string): void {
-  database
-    .prepare("UPDATE refresh_sessions SET revoked_at = ? WHERE token_hash = ? AND revoked_at IS NULL")
-    .run(new Date().toISOString(), hashToken(refreshToken));
-}
-
-export async function verifyAccessToken(token: string, config: AppConfig): Promise<string> {
-  try {
-    const verified = await jwtVerify(token, config.jwtSecret, {
-      issuer: ISSUER,
-      audience: AUDIENCE,
-      algorithms: ["HS256"],
-    });
-    if (!verified.payload.sub) throw new Error("Missing subject");
-    return verified.payload.sub;
-  } catch {
-    throw new AppError(401, "INVALID_ACCESS_TOKEN", "Token de acesso inválido ou expirado");
-  }
-}
-
-export async function requireUser(request: FastifyRequest, config: AppConfig): Promise<string> {
+export async function requireUser(
+  request: FastifyRequest,
+  verifyToken: TokenVerifier,
+): Promise<AuthIdentity> {
   const authorization = request.headers.authorization;
-  if (!authorization?.startsWith("Bearer ")) {
-    throw new AppError(401, "AUTH_REQUIRED", "Autenticação necessária");
-  }
-  return verifyAccessToken(authorization.slice(7), config);
+  const match = authorization?.match(/^Bearer\s+(.+)$/i);
+  if (!match?.[1]) throw new AppError(401, "AUTH_REQUIRED", "Autenticação necessária");
+  return verifyToken(match[1]);
 }
 
-export function getUser(database: SqliteDatabase, userId: string): PublicUser {
-  const row = database.prepare("SELECT * FROM users WHERE id = ?").get(userId) as
-    | UserRow
-    | undefined;
+export async function ensureProfile(database: Queryable, identity: AuthIdentity): Promise<void> {
+  await database.query(
+    `
+      INSERT INTO profiles(id, email, display_name)
+      VALUES ($1, $2, $3)
+      ON CONFLICT(id) DO UPDATE SET
+        email = COALESCE(EXCLUDED.email, profiles.email),
+        display_name = CASE
+          WHEN profiles.display_name = '' THEN EXCLUDED.display_name
+          ELSE profiles.display_name
+        END
+    `,
+    [identity.id, identity.email, identity.displayName],
+  );
+}
+
+export async function getUser(database: Queryable, userId: string): Promise<PublicUser> {
+  const result = await database.query<ProfileRow>(
+    `
+      SELECT id, email, display_name, account_xp, account_level, created_at
+      FROM profiles WHERE id = $1
+    `,
+    [userId],
+  );
+  const row = result.rows[0];
   if (!row) throw new AppError(404, "USER_NOT_FOUND", "Usuário não encontrado");
-  return publicUser(row);
-}
-
-export function revokeAllSessions(database: SqliteDatabase, userId: string): void {
-  inTransaction(database, () => {
-    database
-      .prepare("UPDATE refresh_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL")
-      .run(new Date().toISOString(), userId);
-  });
+  return toPublicUser(row);
 }

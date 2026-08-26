@@ -24,6 +24,8 @@ O usuário escuta em serviços externos, sincroniza o histórico com consentimen
 
 ## Capabilities and Constraints
 
+- Identidade e sessões são fornecidas pelo Supabase Auth; dados do produto vivem em PostgreSQL.
+- O cliente não grava escutas, XP, cartas ou conexões diretamente no banco.
 - Inclui artistas conhecidos e emergentes.
 - Cartas evoluem principalmente por escuta externa verificada, complementada por missões e ações sociais.
 - A conta possui progressão própria, especializações, temporadas e prestígio.

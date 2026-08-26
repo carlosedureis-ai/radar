@@ -1,34 +1,68 @@
 # Radar Backend MVP
 
-Backend funcional do Radar: autenticação, conexões musicais, sincronização de escutas,
-proteção contra repetição artificial, evolução das cartas, progressão da conta e
-compartilhamentos públicos.
+API do Radar para conexões musicais, escutas externas, cartas de artistas e progressão da conta.
+O backend usa Supabase Auth para identidade e Supabase PostgreSQL para persistência. A plataforma
+não reproduz música.
 
-## O que está implementado
+## Arquitetura
 
-- API TypeScript/Fastify com validação estrita e respostas de erro padronizadas.
-- Cadastro e login com `scrypt`, access tokens curtos e refresh tokens opacos rotativos.
-- Tokens de provedores criptografados com AES-256-GCM.
+- Fastify e TypeScript em Node.js 22.
+- Supabase Auth: cadastro, verificação de e-mail, recuperação e sessões.
+- PostgreSQL: perfis, conexões, eventos auditáveis, cartas e progressão.
+- JWTs verificados pelo JWKS público do projeto Supabase.
 - Spotify OAuth 2.0 com PKCE e escopo mínimo para histórico recente.
-- Ingestão idempotente de escutas e trilha de auditoria para eventos rejeitados.
-- Bônus provisório para artistas emergentes, janela antirrepetição e teto diário.
-- Uma mesma identidade Spotify não pode alimentar múltiplas contas Radar.
-- Cartas, nível da conta e peças compartilháveis com proteção contra IDOR.
-- SQLite no MVP local, isolado atrás da camada de acesso a dados.
-- Contrato OpenAPI para desenvolvimento e pentest.
+- Tokens musicais criptografados com AES-256-GCM.
+- Regras de XP executadas somente no servidor, dentro de transações.
+- RLS habilitado e acesso direto de `anon` e `authenticated` revogado nas tabelas do Radar.
 
-Os valores de XP e os nomes dos níveis são **provisórios**, registrados na tabela
-`progression_rules`. A plataforma não reproduz música.
+Os valores de XP e nomes dos níveis continuam **provisórios** e são registrados em
+`progression_rules`.
+
+## Configuração
+
+1. Copie `.env.example` para `.env`.
+2. No painel do Supabase, abra **Connect** e copie a URL do **Session pooler**.
+3. Salve a URL somente em `DATABASE_URL` dentro do `.env`.
+4. Gere `TOKEN_ENCRYPTION_KEY` com o comando indicado no `.env.example`.
+
+O projeto Supabase configurado é `fxhvbmidhgdmrdyrywqw`. O Project ID e a URL pública não são
+segredos; senha do banco, token de serviço e `DATABASE_URL` nunca devem ser versionados.
+
+## Criar as tabelas
+
+A migration inicial está em:
+
+```text
+../supabase/migrations/202608260001_radar_core.sql
+```
+
+Para o primeiro ambiente, abra **SQL Editor** no Supabase, cole a migration e execute uma vez.
+Depois valide a conexão:
+
+```powershell
+pnpm db:check
+```
+
+Também é possível executar `supabase init`, vincular o projeto pela CLI e usar `supabase db push`.
+Não execute reset em um banco remoto com dados reais.
+
+## Autenticação
+
+Cadastro, login, logout, confirmação de e-mail e renovação de sessão pertencem ao Supabase Auth,
+não à API Fastify. O cliente envia o access token em todas as rotas privadas:
+
+```http
+Authorization: Bearer <supabase-access-token>
+```
+
+No primeiro acesso autenticado, o backend cria ou sincroniza o registro correspondente em
+`profiles`. A conexão musical com Spotify é independente do login do Supabase.
 
 ## Rodar no Windows
 
-Execute `iniciar-backend.bat`. Na primeira execução ele instala as dependências e inicia a API
-em `http://127.0.0.1:3333`.
-
-Alternativamente:
+Depois de configurar `.env`, execute `iniciar-backend.bat` ou:
 
 ```powershell
-copy .env.example .env
 pnpm install
 pnpm dev
 ```
@@ -46,51 +80,23 @@ Invoke-RestMethod http://127.0.0.1:3333/health
 3. Preencha `SPOTIFY_CLIENT_ID` no `.env`.
 4. Mantenha a API acessível apenas em HTTPS fora do desenvolvimento local.
 
-O fluxo é:
-
-1. `POST /v1/music/spotify/authorize` autenticado.
-2. Abra `authorizationUrl` no navegador do usuário.
-3. O Spotify retorna em `/v1/music/spotify/callback`.
-4. O callback volta ao app por `APP_DEEP_LINK`.
-5. `POST /v1/music/spotify/sync` importa as novas escutas.
-
-Não há credenciais reais no repositório. Sem `SPOTIFY_CLIENT_ID`, a rota de autorização retorna
-`503 SPOTIFY_NOT_CONFIGURED` de forma intencional.
+Sem `SPOTIFY_CLIENT_ID`, a rota de autorização retorna `503 SPOTIFY_NOT_CONFIGURED`.
 
 ## Scripts
 
 - `pnpm dev`: servidor com reload.
 - `pnpm build`: compilação TypeScript.
-- `pnpm test`: testes de integração em memória.
+- `pnpm test`: testes com PostgreSQL em memória, sem Docker.
 - `pnpm check`: typecheck e testes.
-- `pnpm db:reset`: recria o banco local; bloqueado em produção.
-
-## Strix
-
-Para um scan local, inicie a API e execute `scripts/run-strix-local.ps1`. O script restringe o
-alvo ao projeto local e interrompe antes de qualquer teste quando Docker, a CLI ou as credenciais
-autorizadas não estão disponíveis. O clone local em `../tools/strix` é ignorado pelo Git.
-
-Para testar sem Docker local, conecte o aplicativo gerenciado do Strix ao repositório privado.
-As instruções estão em `../docs/SECURITY-SCANNING.md`; nenhum token deve ser salvo no código.
-
-## Estrutura
-
-- `src/auth.ts`: identidade, JWT e sessões rotativas.
-- `src/spotify.ts`: OAuth/PKCE, renovação e sincronização Spotify.
-- `src/progression.ts`: idempotência, antifraude inicial, XP, cartas e conta.
-- `src/db.ts`: esquema e regras provisórias.
-- `openapi.yaml`: contrato para clientes e ferramentas de segurança.
-- `SECURITY.md`: modelo de ameaça e regras operacionais.
+- `pnpm db:check`: valida a conexão configurada sem alterar dados.
 
 ## Antes da produção
 
-- Migrar SQLite para PostgreSQL gerenciado com migrations versionadas.
-- Usar KMS/secret manager para as chaves e tokens de provedores.
+- Configurar confirmação de e-mail e SMTP no Supabase Auth.
+- Aplicar a migration em um projeto de desenvolvimento antes de produção.
+- Usar KMS ou secret manager para a chave e os tokens de provedores.
 - Trocar sincronização manual por fila agendada com backoff e jitter.
 - Implementar revogação no provedor quando ele disponibilizar esse fluxo.
-- Criar painel administrativo protegido para curadoria e mapeamento de artistas.
-- Implementar verificação de e-mail antes da abertura de cadastro público.
-- Definir política de retenção, exportação e exclusão de dados.
+- Definir retenção, exportação e exclusão de dados conforme a LGPD.
 - Aprovar os valores definitivos de XP e regras de elegibilidade.
-- Executar Strix em staging autorizado e corrigir achados antes da abertura pública.
+- Executar pentest somente em staging autorizado.

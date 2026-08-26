@@ -5,15 +5,14 @@ import rateLimit from "@fastify/rate-limit";
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import { z, ZodError } from "zod";
 import {
+  createSupabaseTokenVerifier,
+  ensureProfile,
   getUser,
-  loginUser,
-  registerUser,
   requireUser,
-  revokeRefreshToken,
-  rotateRefreshToken,
+  type TokenVerifier,
 } from "./auth.js";
 import { loadConfig, type AppConfig } from "./config.js";
-import { createDatabase, type SqliteDatabase } from "./db.js";
+import { createDatabase, type DatabasePool } from "./db.js";
 import { AppError } from "./errors.js";
 import {
   createShareCard,
@@ -29,19 +28,6 @@ import {
   syncSpotify,
 } from "./spotify.js";
 
-const registerSchema = z.object({
-  email: z.email().max(254),
-  displayName: z.string().trim().min(2).max(60),
-  password: z
-    .string()
-    .min(12)
-    .max(128)
-    .refine((value) => /[A-Za-z]/.test(value) && /\d/.test(value), {
-      message: "A senha precisa conter letras e números",
-    }),
-});
-const loginSchema = z.object({ email: z.email().max(254), password: z.string().min(1).max(128) });
-const refreshSchema = z.object({ refreshToken: z.string().min(20).max(256) });
 const oauthCallbackSchema = z.object({
   code: z.string().min(1).max(2048),
   state: z.string().min(20).max(256),
@@ -69,16 +55,20 @@ function errorBody(code: string, message: string, requestId: string): unknown {
 
 export type RadarBackend = {
   app: FastifyInstance;
-  database: SqliteDatabase;
+  database: DatabasePool;
   config: AppConfig;
 };
 
 export async function createApp(options?: {
   config?: AppConfig;
-  database?: SqliteDatabase;
+  database?: DatabasePool;
+  tokenVerifier?: TokenVerifier;
 }): Promise<RadarBackend> {
   const config = options?.config ?? loadConfig();
-  const database = options?.database ?? createDatabase(config.databasePath);
+  const database =
+    options?.database ??
+    createDatabase({ databaseUrl: config.databaseUrl, ssl: config.databaseSsl });
+  const tokenVerifier = options?.tokenVerifier ?? createSupabaseTokenVerifier(config);
   const app = Fastify({
     logger:
       config.nodeEnv === "test"
@@ -140,42 +130,21 @@ export async function createApp(options?: {
       .send(errorBody("INTERNAL_ERROR", "Erro interno inesperado", request.id));
   });
 
-  const authenticated = async (request: FastifyRequest): Promise<string> =>
-    requireUser(request, config);
+  const authenticated = async (request: FastifyRequest): Promise<string> => {
+    const identity = await requireUser(request, tokenVerifier);
+    await ensureProfile(database, identity);
+    return identity.id;
+  };
 
-  app.get("/health", async () => ({ status: "ok", service: "radar-backend", version: "0.1.0" }));
-
-  app.post(
-    "/v1/auth/register",
-    { config: { rateLimit: { max: 8, timeWindow: "1 minute" } } },
-    async (request, reply) => {
-      const result = await registerUser(database, config, parse(registerSchema, request.body));
-      return reply.status(201).send(result);
-    },
-  );
-  app.post(
-    "/v1/auth/login",
-    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
-    async (request) => loginUser(database, config, parse(loginSchema, request.body)),
-  );
-  app.post(
-    "/v1/auth/refresh",
-    { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
-    async (request) => {
-      const body = parse(refreshSchema, request.body);
-      return { tokens: await rotateRefreshToken(database, config, body.refreshToken) };
-    },
-  );
-  app.post("/v1/auth/logout", async (request, reply) => {
-    const body = parse(refreshSchema, request.body);
-    revokeRefreshToken(database, body.refreshToken);
-    return reply.status(204).send();
+  app.get("/health", async () => {
+    await database.query("SELECT 1");
+    return { status: "ok", service: "radar-backend", version: "0.2.0", database: "postgresql" };
   });
 
   app.get("/v1/me", async (request) => getUser(database, await authenticated(request)));
 
   app.get("/v1/music/connections", async (request) => ({
-    items: listConnections(database, await authenticated(request)),
+    items: await listConnections(database, await authenticated(request)),
   }));
   app.post("/v1/music/spotify/authorize", async (request) =>
     createSpotifyAuthorization(database, config, await authenticated(request)),
@@ -195,7 +164,7 @@ export async function createApp(options?: {
   );
   app.delete("/v1/music/connections/:provider", async (request, reply) => {
     const { provider } = parse(providerParamsSchema, request.params);
-    disconnectProvider(database, await authenticated(request), provider);
+    await disconnectProvider(database, await authenticated(request), provider);
     return reply.status(204).send();
   });
 
@@ -203,29 +172,49 @@ export async function createApp(options?: {
     const userId = await authenticated(request);
     const query = parse(listenQuerySchema, request.query);
     const before = query.before ?? new Date(Date.now() + 60_000).toISOString();
-    const items = database
-      .prepare(`
-        SELECT e.id, e.provider, e.provider_track_id AS providerTrackId,
-               e.played_at AS playedAt, e.qualified, e.xp_awarded AS xpAwarded,
-               e.rejection_reason AS rejectionReason, a.id AS artistId, a.name AS artistName
+    const result = await database.query<{
+      id: string;
+      provider: string;
+      provider_track_id: string;
+      played_at: Date | string;
+      qualified: boolean;
+      xp_awarded: number;
+      rejection_reason: string | null;
+      artist_id: string | null;
+      artist_name: string | null;
+    }>(
+      `
+        SELECT e.id, e.provider, e.provider_track_id, e.played_at, e.qualified,
+               e.xp_awarded, e.rejection_reason, a.id AS artist_id, a.name AS artist_name
         FROM listening_events e LEFT JOIN artists a ON a.id = e.artist_id
-        WHERE e.user_id = ? AND e.played_at < ?
-        ORDER BY e.played_at DESC LIMIT ?
-      `)
-      .all(userId, before, query.limit)
-      .map((row) => ({ ...row, qualified: Boolean((row as { qualified: number }).qualified) }));
-    return { items, nextBefore: (items.at(-1) as { playedAt?: string } | undefined)?.playedAt ?? null };
+        WHERE e.user_id = $1 AND e.played_at < $2
+        ORDER BY e.played_at DESC LIMIT $3
+      `,
+      [userId, before, query.limit],
+    );
+    const items = result.rows.map((row) => ({
+      id: row.id,
+      provider: row.provider,
+      providerTrackId: row.provider_track_id,
+      playedAt: new Date(row.played_at).toISOString(),
+      qualified: row.qualified,
+      xpAwarded: Number(row.xp_awarded),
+      rejectionReason: row.rejection_reason,
+      artistId: row.artist_id,
+      artistName: row.artist_name,
+    }));
+    return { items, nextBefore: items.at(-1)?.playedAt ?? null };
   });
 
   app.get("/v1/cards", async (request) => ({
-    items: listCards(database, await authenticated(request)),
+    items: await listCards(database, await authenticated(request)),
   }));
   app.get("/v1/progression", async (request) =>
     getProgression(database, await authenticated(request)),
   );
   app.post("/v1/cards/:artistId/share", async (request, reply) => {
     const { artistId } = parse(shareParamsSchema, request.params);
-    const share = createShareCard(database, await authenticated(request), artistId);
+    const share = await createShareCard(database, await authenticated(request), artistId);
     return reply.status(201).send(share);
   });
   app.get("/v1/shares/:token", async (request) => {
@@ -235,18 +224,31 @@ export async function createApp(options?: {
 
   app.get("/v1/artists", async (request) => {
     await authenticated(request);
-    const items = database
-      .prepare(`
-        SELECT id, slug, name, is_emerging AS isEmerging, eligibility_status AS eligibilityStatus
+    const result = await database.query<{
+      id: string;
+      slug: string;
+      name: string;
+      is_emerging: boolean;
+      eligibility_status: string;
+    }>(
+      `
+        SELECT id, slug, name, is_emerging, eligibility_status
         FROM artists WHERE eligibility_status = 'eligible' ORDER BY name
-      `)
-      .all()
-      .map((row) => ({ ...row, isEmerging: Boolean((row as { isEmerging: number }).isEmerging) }));
-    return { items };
+      `,
+    );
+    return {
+      items: result.rows.map((row) => ({
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        isEmerging: row.is_emerging,
+        eligibilityStatus: row.eligibility_status,
+      })),
+    };
   });
 
   app.addHook("onClose", async () => {
-    if (!options?.database) database.close();
+    if (!options?.database) await database.end();
   });
   return { app, database, config };
 }

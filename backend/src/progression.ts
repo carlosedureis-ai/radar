@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { SqliteDatabase } from "./db.js";
-import { inTransaction } from "./db.js";
+import type { DatabasePool, Queryable } from "./db.js";
+import { inTransaction, isUniqueViolation } from "./db.js";
 import { AppError } from "./errors.js";
 import { randomToken } from "./security.js";
 
@@ -12,11 +12,12 @@ const REPEAT_WINDOW_MS = 30 * 60 * 1000;
 type ArtistMappingRow = {
   artist_id: string;
   name: string;
-  is_emerging: number;
+  is_emerging: boolean;
   eligibility_status: "eligible" | "pending" | "ineligible";
 };
 
-type RuleRow = { level: number; name: string; min_xp: number; provisional: number };
+type RuleRow = { level: number; name: string; min_xp: number; provisional: boolean };
+type ProgressionRuleRow = RuleRow & { scope: "card" | "account" };
 
 export type NormalizedListen = {
   provider: string;
@@ -34,238 +35,303 @@ export type ListenResult = {
   accountLevel?: number;
 };
 
-function levelForXp(database: SqliteDatabase, scope: "card" | "account", xp: number): RuleRow {
-  const rule = database
-    .prepare(`
+async function levelForXp(
+  database: Queryable,
+  scope: "card" | "account",
+  xp: number,
+): Promise<RuleRow> {
+  const result = await database.query<RuleRow>(
+    `
       SELECT level, name, min_xp, provisional
-      FROM progression_rules WHERE scope = ? AND min_xp <= ?
+      FROM progression_rules WHERE scope = $1 AND min_xp <= $2
       ORDER BY min_xp DESC LIMIT 1
-    `)
-    .get(scope, xp) as RuleRow | undefined;
+    `,
+    [scope, xp],
+  );
+  const rule = result.rows[0];
   if (!rule) throw new Error(`Missing ${scope} progression rules`);
   return rule;
 }
 
-export function recordListeningEvent(
-  database: SqliteDatabase,
+export async function recordListeningEvent(
+  database: DatabasePool,
   userId: string,
   listen: NormalizedListen,
-): ListenResult {
+): Promise<ListenResult> {
   const playedAt = new Date(listen.playedAt);
   if (Number.isNaN(playedAt.getTime()) || playedAt.getTime() > Date.now() + 5 * 60 * 1000) {
     throw new AppError(400, "INVALID_PLAYED_AT", "Horário da escuta inválido");
   }
+  const playedAtIso = playedAt.toISOString();
 
-  const duplicate = database
-    .prepare(`
-      SELECT id FROM listening_events
-      WHERE user_id = ? AND provider = ? AND provider_track_id = ? AND played_at = ?
-    `)
-    .get(userId, listen.provider, listen.providerTrackId, playedAt.toISOString());
-  if (duplicate) return { status: "duplicate", xpAwarded: 0, reason: "duplicate" };
-
-  const mapping = database
-    .prepare(`
-      SELECT a.id AS artist_id, a.name, a.is_emerging, a.eligibility_status
-      FROM artist_provider_ids p
-      JOIN artists a ON a.id = p.artist_id
-      WHERE p.provider = ? AND p.provider_artist_id = ?
-    `)
-    .get(listen.provider, listen.providerArtistId) as ArtistMappingRow | undefined;
-
-  return inTransaction(database, () => {
-    const now = new Date().toISOString();
-    let xpAwarded = 0;
-    let rejectionReason: string | null = null;
-
-    if (!mapping) {
-      rejectionReason = "artist-not-in-catalog";
-    } else if (mapping.eligibility_status !== "eligible") {
-      rejectionReason = `artist-${mapping.eligibility_status}`;
-    } else {
-      const repeatWindowStart = new Date(playedAt.getTime() - REPEAT_WINDOW_MS).toISOString();
-      const repeatWindowEnd = new Date(playedAt.getTime() + REPEAT_WINDOW_MS).toISOString();
-      const recentRepeat = database
-        .prepare(`
+  try {
+    return await inTransaction(database, async (transaction) => {
+      const duplicate = await transaction.query(
+        `
           SELECT id FROM listening_events
-          WHERE user_id = ? AND artist_id = ? AND provider = ? AND provider_track_id = ?
-            AND qualified = 1 AND played_at >= ? AND played_at <= ? AND played_at <> ?
-          LIMIT 1
-        `)
-        .get(
+          WHERE user_id = $1 AND provider = $2 AND provider_track_id = $3 AND played_at = $4
+        `,
+        [userId, listen.provider, listen.providerTrackId, playedAtIso],
+      );
+      if (duplicate.rows[0]) return { status: "duplicate", xpAwarded: 0, reason: "duplicate" };
+
+      const mappingResult = await transaction.query<ArtistMappingRow>(
+        `
+          SELECT a.id AS artist_id, a.name, a.is_emerging, a.eligibility_status
+          FROM artist_provider_ids p
+          JOIN artists a ON a.id = p.artist_id
+          WHERE p.provider = $1 AND p.provider_artist_id = $2
+        `,
+        [listen.provider, listen.providerArtistId],
+      );
+      const mapping = mappingResult.rows[0];
+      let xpAwarded = 0;
+      let rejectionReason: string | null = null;
+
+      if (!mapping) {
+        rejectionReason = "artist-not-in-catalog";
+      } else if (mapping.eligibility_status !== "eligible") {
+        rejectionReason = `artist-${mapping.eligibility_status}`;
+      } else {
+        const repeatWindowStart = new Date(playedAt.getTime() - REPEAT_WINDOW_MS).toISOString();
+        const repeatWindowEnd = new Date(playedAt.getTime() + REPEAT_WINDOW_MS).toISOString();
+        const recentRepeat = await transaction.query(
+          `
+            SELECT id FROM listening_events
+            WHERE user_id = $1 AND artist_id = $2 AND provider = $3 AND provider_track_id = $4
+              AND qualified = true AND played_at >= $5 AND played_at <= $6 AND played_at <> $7
+            LIMIT 1
+          `,
+          [
+            userId,
+            mapping.artist_id,
+            listen.provider,
+            listen.providerTrackId,
+            repeatWindowStart,
+            repeatWindowEnd,
+            playedAtIso,
+          ],
+        );
+        const dailyResult = await transaction.query<{ total: number | string }>(
+          `
+            SELECT COALESCE(SUM(xp_awarded), 0) AS total
+            FROM listening_events
+            WHERE user_id = $1 AND artist_id = $2 AND played_at::date = $3::timestamptz::date
+          `,
+          [userId, mapping.artist_id, playedAtIso],
+        );
+        const dailyXp = Number(dailyResult.rows[0]?.total ?? 0);
+
+        if (recentRepeat.rows[0]) {
+          rejectionReason = "repeat-too-soon";
+        } else if (dailyXp >= DAILY_ARTIST_XP_CAP) {
+          rejectionReason = "daily-artist-cap";
+        } else {
+          const proposedXp = BASE_LISTEN_XP + (mapping.is_emerging ? EMERGING_ARTIST_BONUS : 0);
+          xpAwarded = Math.min(proposedXp, DAILY_ARTIST_XP_CAP - dailyXp);
+        }
+      }
+
+      await transaction.query(
+        `
+          INSERT INTO listening_events(
+            id, user_id, provider, provider_track_id, provider_artist_id, artist_id,
+            played_at, qualified, xp_awarded, rejection_reason
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        `,
+        [
+          randomUUID(),
           userId,
-          mapping.artist_id,
           listen.provider,
           listen.providerTrackId,
-          repeatWindowStart,
-          repeatWindowEnd,
-          playedAt.toISOString(),
-        );
-      const dailyXp = database
-        .prepare(`
-          SELECT COALESCE(SUM(xp_awarded), 0) AS total
-          FROM listening_events
-          WHERE user_id = ? AND artist_id = ? AND date(played_at) = date(?)
-        `)
-        .get(userId, mapping.artist_id, playedAt.toISOString()) as { total: number };
-
-      if (recentRepeat) {
-        rejectionReason = "repeat-too-soon";
-      } else if (dailyXp.total >= DAILY_ARTIST_XP_CAP) {
-        rejectionReason = "daily-artist-cap";
-      } else {
-        const proposedXp = BASE_LISTEN_XP + (mapping.is_emerging ? EMERGING_ARTIST_BONUS : 0);
-        xpAwarded = Math.min(proposedXp, DAILY_ARTIST_XP_CAP - dailyXp.total);
-      }
-    }
-
-    const qualified = xpAwarded > 0 ? 1 : 0;
-    database
-      .prepare(`
-        INSERT INTO listening_events(
-          id, user_id, provider, provider_track_id, provider_artist_id, artist_id,
-          played_at, qualified, xp_awarded, rejection_reason, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `)
-      .run(
-        randomUUID(),
-        userId,
-        listen.provider,
-        listen.providerTrackId,
-        listen.providerArtistId,
-        mapping?.artist_id ?? null,
-        playedAt.toISOString(),
-        qualified,
-        xpAwarded,
-        rejectionReason,
-        now,
+          listen.providerArtistId,
+          mapping?.artist_id ?? null,
+          playedAtIso,
+          xpAwarded > 0,
+          xpAwarded,
+          rejectionReason,
+        ],
       );
 
-    if (!mapping || xpAwarded === 0) {
+      if (!mapping || xpAwarded === 0) {
+        return {
+          status: "rejected" as const,
+          xpAwarded: 0,
+          reason: rejectionReason ?? "not-qualified",
+          ...(mapping ? { artistId: mapping.artist_id } : {}),
+        };
+      }
+
+      const cardResult = await transaction.query<{ xp: number }>(
+        `
+          INSERT INTO artist_cards(user_id, artist_id, xp, listen_count, level)
+          VALUES ($1, $2, $3, 1, 1)
+          ON CONFLICT(user_id, artist_id) DO UPDATE SET
+            xp = artist_cards.xp + EXCLUDED.xp,
+            listen_count = artist_cards.listen_count + 1,
+            updated_at = now()
+          RETURNING xp
+        `,
+        [userId, mapping.artist_id, xpAwarded],
+      );
+      const cardXp = Number(cardResult.rows[0]?.xp ?? 0);
+      const cardRule = await levelForXp(transaction, "card", cardXp);
+      await transaction.query(
+        "UPDATE artist_cards SET level = $1 WHERE user_id = $2 AND artist_id = $3",
+        [cardRule.level, userId, mapping.artist_id],
+      );
+
+      const accountResult = await transaction.query<{ account_xp: number }>(
+        `
+          UPDATE profiles SET account_xp = account_xp + $1, updated_at = now()
+          WHERE id = $2 RETURNING account_xp
+        `,
+        [xpAwarded, userId],
+      );
+      const accountXp = Number(accountResult.rows[0]?.account_xp ?? 0);
+      const accountRule = await levelForXp(transaction, "account", accountXp);
+      await transaction.query("UPDATE profiles SET account_level = $1 WHERE id = $2", [
+        accountRule.level,
+        userId,
+      ]);
+
       return {
-        status: "rejected" as const,
-        xpAwarded: 0,
-        reason: rejectionReason ?? "not-qualified",
-        ...(mapping ? { artistId: mapping.artist_id } : {}),
+        status: "awarded" as const,
+        xpAwarded,
+        artistId: mapping.artist_id,
+        cardLevel: cardRule.level,
+        accountLevel: accountRule.level,
       };
+    });
+  } catch (error) {
+    if (isUniqueViolation(error, "listening_events_identity_key")) {
+      return { status: "duplicate", xpAwarded: 0, reason: "duplicate" };
     }
-
-    database
-      .prepare(`
-        INSERT INTO artist_cards(user_id, artist_id, xp, listen_count, level, updated_at)
-        VALUES (?, ?, ?, 1, 1, ?)
-        ON CONFLICT(user_id, artist_id) DO UPDATE SET
-          xp = xp + excluded.xp,
-          listen_count = listen_count + 1,
-          updated_at = excluded.updated_at
-      `)
-      .run(userId, mapping.artist_id, xpAwarded, now);
-
-    const card = database
-      .prepare("SELECT xp FROM artist_cards WHERE user_id = ? AND artist_id = ?")
-      .get(userId, mapping.artist_id) as { xp: number };
-    const cardRule = levelForXp(database, "card", card.xp);
-    database
-      .prepare("UPDATE artist_cards SET level = ? WHERE user_id = ? AND artist_id = ?")
-      .run(cardRule.level, userId, mapping.artist_id);
-
-    database.prepare("UPDATE users SET account_xp = account_xp + ? WHERE id = ?").run(
-      xpAwarded,
-      userId,
-    );
-    const account = database.prepare("SELECT account_xp FROM users WHERE id = ?").get(userId) as {
-      account_xp: number;
-    };
-    const accountRule = levelForXp(database, "account", account.account_xp);
-    database.prepare("UPDATE users SET account_level = ? WHERE id = ?").run(
-      accountRule.level,
-      userId,
-    );
-
-    return {
-      status: "awarded" as const,
-      xpAwarded,
-      artistId: mapping.artist_id,
-      cardLevel: cardRule.level,
-      accountLevel: accountRule.level,
-    };
-  });
+    throw error;
+  }
 }
 
-export function listCards(database: SqliteDatabase, userId: string): unknown[] {
-  return database
-    .prepare(`
-      SELECT c.artist_id AS artistId, a.name AS artistName, a.slug, a.is_emerging AS isEmerging,
-             c.xp, c.listen_count AS listenCount, c.level, c.updated_at AS updatedAt
+export async function listCards(database: Queryable, userId: string): Promise<unknown[]> {
+  const result = await database.query<{
+    artist_id: string;
+    artist_name: string;
+    slug: string;
+    is_emerging: boolean;
+    xp: number;
+    listen_count: number;
+    level: number;
+    updated_at: Date | string;
+  }>(
+    `
+      SELECT c.artist_id, a.name AS artist_name, a.slug, a.is_emerging,
+             c.xp, c.listen_count, c.level, c.updated_at
       FROM artist_cards c JOIN artists a ON a.id = c.artist_id
-      WHERE c.user_id = ? ORDER BY c.xp DESC, a.name ASC
-    `)
-    .all(userId)
-    .map((row) => ({ ...row, isEmerging: Boolean((row as { isEmerging: number }).isEmerging) }));
+      WHERE c.user_id = $1 ORDER BY c.xp DESC, a.name ASC
+    `,
+    [userId],
+  );
+  return result.rows.map((row) => ({
+    artistId: row.artist_id,
+    artistName: row.artist_name,
+    slug: row.slug,
+    isEmerging: row.is_emerging,
+    xp: Number(row.xp),
+    listenCount: Number(row.listen_count),
+    level: Number(row.level),
+    updatedAt: new Date(row.updated_at).toISOString(),
+  }));
 }
 
-export function getProgression(database: SqliteDatabase, userId: string): unknown {
-  const account = database
-    .prepare(`
-      SELECT id, display_name AS displayName, account_xp AS xp, account_level AS level
-      FROM users WHERE id = ?
-    `)
-    .get(userId);
+export async function getProgression(database: Queryable, userId: string): Promise<unknown> {
+  const accountResult = await database.query<{
+    id: string;
+    display_name: string;
+    account_xp: number;
+    account_level: number;
+  }>(
+    "SELECT id, display_name, account_xp, account_level FROM profiles WHERE id = $1",
+    [userId],
+  );
+  const account = accountResult.rows[0];
   if (!account) throw new AppError(404, "USER_NOT_FOUND", "Usuário não encontrado");
-  const rules = database
-    .prepare(`
-      SELECT scope, level, name, min_xp AS minXp, provisional
+  const rulesResult = await database.query<ProgressionRuleRow>(
+    `
+      SELECT scope, level, name, min_xp, provisional
       FROM progression_rules ORDER BY scope, level
-    `)
-    .all()
-    .map((row) => ({ ...row, provisional: Boolean((row as { provisional: number }).provisional) }));
-  return { account, rules };
+    `,
+  );
+  return {
+    account: {
+      id: account.id,
+      displayName: account.display_name,
+      xp: Number(account.account_xp),
+      level: Number(account.account_level),
+    },
+    rules: rulesResult.rows.map((row) => ({
+      scope: row.scope,
+      level: Number(row.level),
+      name: row.name,
+      minXp: Number(row.min_xp),
+      provisional: row.provisional,
+    })),
+  };
 }
 
-export function createShareCard(
-  database: SqliteDatabase,
+export async function createShareCard(
+  database: Queryable,
   userId: string,
   artistId: string,
-): { token: string; createdAt: string } {
-  const card = database
-    .prepare(`
-      SELECT c.level, c.xp, u.account_level AS accountLevel
-      FROM artist_cards c JOIN users u ON u.id = c.user_id
-      WHERE c.user_id = ? AND c.artist_id = ?
-    `)
-    .get(userId, artistId) as { level: number; xp: number; accountLevel: number } | undefined;
+): Promise<{ token: string; createdAt: string }> {
+  const cardResult = await database.query<{ level: number; xp: number; account_level: number }>(
+    `
+      SELECT c.level, c.xp, p.account_level
+      FROM artist_cards c JOIN profiles p ON p.id = c.user_id
+      WHERE c.user_id = $1 AND c.artist_id = $2
+    `,
+    [userId, artistId],
+  );
+  const card = cardResult.rows[0];
   if (!card) throw new AppError(404, "CARD_NOT_FOUND", "Carta não encontrada");
   const token = randomToken(18);
   const createdAt = new Date().toISOString();
-  database
-    .prepare(`
+  await database.query(
+    `
       INSERT INTO share_cards(
         id, public_token, user_id, artist_id, card_level, card_xp, account_level, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `)
-    .run(
-      randomUUID(),
-      token,
-      userId,
-      artistId,
-      card.level,
-      card.xp,
-      card.accountLevel,
-      createdAt,
-    );
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `,
+    [randomUUID(), token, userId, artistId, card.level, card.xp, card.account_level, createdAt],
+  );
   return { token, createdAt };
 }
 
-export function getPublicShare(database: SqliteDatabase, token: string): unknown {
-  const share = database
-    .prepare(`
-      SELECT s.public_token AS token, a.name AS artistName, a.slug AS artistSlug,
-             s.card_level AS cardLevel, s.card_xp AS cardXp,
-             s.account_level AS accountLevel, s.created_at AS createdAt
+export async function getPublicShare(database: Queryable, token: string): Promise<unknown> {
+  const result = await database.query<{
+    public_token: string;
+    artist_name: string;
+    artist_slug: string;
+    card_level: number;
+    card_xp: number;
+    account_level: number;
+    created_at: Date | string;
+  }>(
+    `
+      SELECT s.public_token, a.name AS artist_name, a.slug AS artist_slug,
+             s.card_level, s.card_xp, s.account_level, s.created_at
       FROM share_cards s JOIN artists a ON a.id = s.artist_id
-      WHERE s.public_token = ?
-    `)
-    .get(token);
+      WHERE s.public_token = $1
+    `,
+    [token],
+  );
+  const share = result.rows[0];
   if (!share) throw new AppError(404, "SHARE_NOT_FOUND", "Compartilhamento não encontrado");
-  return share;
+  return {
+    token: share.public_token,
+    artistName: share.artist_name,
+    artistSlug: share.artist_slug,
+    cardLevel: Number(share.card_level),
+    cardXp: Number(share.card_xp),
+    accountLevel: Number(share.account_level),
+    createdAt: new Date(share.created_at).toISOString(),
+  };
 }

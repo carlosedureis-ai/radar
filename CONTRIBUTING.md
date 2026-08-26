@@ -17,6 +17,9 @@ pnpm build
 pnpm audit --prod
 ```
 
+Mudanças de schema devem ser adicionadas como novas migrations em `supabase/migrations/`. Nunca
+execute reset destrutivo contra um projeto Supabase remoto com dados reais.
+
 Toda nova rota privada precisa de teste de autenticação e autorização por proprietário. Alterações
 na ingestão de escutas precisam testar idempotência, repetição e limites de XP.
 

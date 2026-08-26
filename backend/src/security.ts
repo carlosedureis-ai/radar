@@ -3,30 +3,10 @@ import {
   createDecipheriv,
   createHash,
   randomBytes,
-  scryptSync,
-  timingSafeEqual,
 } from "node:crypto";
 
 export function randomToken(bytes = 32): string {
   return randomBytes(bytes).toString("base64url");
-}
-
-export function hashToken(token: string): string {
-  return createHash("sha256").update(token).digest("base64url");
-}
-
-export function hashPassword(password: string, salt = randomToken(16)): {
-  hash: string;
-  salt: string;
-} {
-  const hash = scryptSync(password, salt, 64).toString("base64url");
-  return { hash, salt };
-}
-
-export function verifyPassword(password: string, salt: string, expectedHash: string): boolean {
-  const actual = scryptSync(password, salt, 64);
-  const expected = Buffer.from(expectedHash, "base64url");
-  return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
 export function encryptSecret(value: string, key: Buffer): string {

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { AppConfig } from "./config.js";
-import type { SqliteDatabase } from "./db.js";
-import { inTransaction } from "./db.js";
+import type { DatabasePool, Queryable } from "./db.js";
+import { inTransaction, isUniqueViolation } from "./db.js";
 import { AppError } from "./errors.js";
 import { recordListeningEvent, type ListenResult } from "./progression.js";
 import {
@@ -19,7 +19,7 @@ const SPOTIFY_SCOPES = ["user-read-private", "user-read-recently-played"];
 type OAuthStateRow = {
   user_id: string;
   code_verifier_encrypted: string;
-  expires_at: string;
+  expires_at: Date | string;
 };
 
 type SpotifyTokenResponse = {
@@ -34,7 +34,7 @@ type ConnectionRow = {
   id: string;
   access_token_encrypted: string;
   refresh_token_encrypted: string;
-  token_expires_at: string;
+  token_expires_at: Date | string;
   last_cursor: string | null;
 };
 
@@ -57,28 +57,29 @@ function requireSpotifyConfig(config: AppConfig): string {
   return config.spotifyClientId;
 }
 
-export function createSpotifyAuthorization(
-  database: SqliteDatabase,
+export async function createSpotifyAuthorization(
+  database: Queryable,
   config: AppConfig,
   userId: string,
-): { authorizationUrl: string; state: string } {
+): Promise<{ authorizationUrl: string; state: string }> {
   const clientId = requireSpotifyConfig(config);
   const state = randomToken(24);
   const verifier = randomToken(64);
   const now = new Date();
-  database
-    .prepare(`
+  await database.query(
+    `
       INSERT INTO oauth_states(
         state, user_id, provider, code_verifier_encrypted, expires_at, created_at
-      ) VALUES (?, ?, 'spotify', ?, ?, ?)
-    `)
-    .run(
+      ) VALUES ($1, $2, 'spotify', $3, $4, $5)
+    `,
+    [
       state,
       userId,
       encryptSecret(verifier, config.encryptionKey),
       new Date(now.getTime() + 10 * 60 * 1000).toISOString(),
       now.toISOString(),
-    );
+    ],
+  );
 
   const url = new URL(SPOTIFY_AUTHORIZE_URL);
   url.search = new URLSearchParams({
@@ -126,22 +127,24 @@ async function spotifyGet<T>(path: string, accessToken: string): Promise<T> {
 }
 
 export async function completeSpotifyAuthorization(
-  database: SqliteDatabase,
+  database: DatabasePool,
   config: AppConfig,
   code: string,
   state: string,
 ): Promise<{ userId: string; provider: "spotify" }> {
   const clientId = requireSpotifyConfig(config);
-  const oauthState = database
-    .prepare(`
-      SELECT user_id, code_verifier_encrypted, expires_at
-      FROM oauth_states WHERE state = ? AND provider = 'spotify'
-    `)
-    .get(state) as OAuthStateRow | undefined;
-  if (!oauthState || new Date(oauthState.expires_at).getTime() <= Date.now()) {
+  const stateResult = await database.query<OAuthStateRow>(
+    `
+      DELETE FROM oauth_states
+      WHERE state = $1 AND provider = 'spotify' AND expires_at > now()
+      RETURNING user_id, code_verifier_encrypted, expires_at
+    `,
+    [state],
+  );
+  const oauthState = stateResult.rows[0];
+  if (!oauthState) {
     throw new AppError(400, "INVALID_OAUTH_STATE", "A tentativa de conexão expirou ou é inválida");
   }
-  database.prepare("DELETE FROM oauth_states WHERE state = ?").run(state);
 
   const token = await requestToken(
     new URLSearchParams({
@@ -158,53 +161,66 @@ export async function completeSpotifyAuthorization(
   }
   const profile = await spotifyGet<{ id: string }>("/me", token.access_token);
   const now = new Date();
-  inTransaction(database, () => {
-    const existingOwner = database
-      .prepare(`
-        SELECT user_id FROM music_connections
-        WHERE provider = 'spotify' AND provider_user_id = ? AND user_id <> ?
-      `)
-      .get(profile.id, oauthState.user_id);
-    if (existingOwner) {
+
+  try {
+    await inTransaction(database, async (transaction) => {
+      const existingOwner = await transaction.query(
+        `
+          SELECT user_id FROM music_connections
+          WHERE provider = 'spotify' AND provider_user_id = $1 AND user_id <> $2
+        `,
+        [profile.id, oauthState.user_id],
+      );
+      if (existingOwner.rows[0]) {
+        throw new AppError(
+          409,
+          "PROVIDER_ACCOUNT_IN_USE",
+          "Esta conta Spotify já está conectada a outra conta Radar",
+        );
+      }
+
+      await transaction.query(
+        `
+          INSERT INTO music_connections(
+            id, user_id, provider, provider_user_id, access_token_encrypted,
+            refresh_token_encrypted, token_expires_at, scopes, status, created_at, updated_at
+          ) VALUES ($1, $2, 'spotify', $3, $4, $5, $6, $7, 'active', $8, $8)
+          ON CONFLICT(user_id, provider) DO UPDATE SET
+            provider_user_id = EXCLUDED.provider_user_id,
+            access_token_encrypted = EXCLUDED.access_token_encrypted,
+            refresh_token_encrypted = EXCLUDED.refresh_token_encrypted,
+            token_expires_at = EXCLUDED.token_expires_at,
+            scopes = EXCLUDED.scopes,
+            status = 'active',
+            updated_at = EXCLUDED.updated_at
+        `,
+        [
+          randomUUID(),
+          oauthState.user_id,
+          profile.id,
+          encryptSecret(token.access_token, config.encryptionKey),
+          encryptSecret(providerRefreshToken, config.encryptionKey),
+          new Date(now.getTime() + token.expires_in * 1000).toISOString(),
+          token.scope,
+          now.toISOString(),
+        ],
+      );
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) {
       throw new AppError(
         409,
         "PROVIDER_ACCOUNT_IN_USE",
         "Esta conta Spotify já está conectada a outra conta Radar",
       );
     }
-
-    database
-      .prepare(`
-        INSERT INTO music_connections(
-          id, user_id, provider, provider_user_id, access_token_encrypted,
-          refresh_token_encrypted, token_expires_at, scopes, status, created_at, updated_at
-        ) VALUES (?, ?, 'spotify', ?, ?, ?, ?, ?, 'active', ?, ?)
-        ON CONFLICT(user_id, provider) DO UPDATE SET
-          provider_user_id = excluded.provider_user_id,
-          access_token_encrypted = excluded.access_token_encrypted,
-          refresh_token_encrypted = excluded.refresh_token_encrypted,
-          token_expires_at = excluded.token_expires_at,
-          scopes = excluded.scopes,
-          status = 'active',
-          updated_at = excluded.updated_at
-      `)
-      .run(
-        randomUUID(),
-        oauthState.user_id,
-        profile.id,
-        encryptSecret(token.access_token, config.encryptionKey),
-        encryptSecret(providerRefreshToken, config.encryptionKey),
-        new Date(now.getTime() + token.expires_in * 1000).toISOString(),
-        token.scope,
-        now.toISOString(),
-        now.toISOString(),
-      );
-  });
+    throw error;
+  }
   return { userId: oauthState.user_id, provider: "spotify" };
 }
 
 async function validAccessToken(
-  database: SqliteDatabase,
+  database: Queryable,
   config: AppConfig,
   connection: ConnectionRow,
 ): Promise<string> {
@@ -223,33 +239,35 @@ async function validAccessToken(
     ? encryptSecret(token.refresh_token, config.encryptionKey)
     : connection.refresh_token_encrypted;
   const expiresAt = new Date(Date.now() + token.expires_in * 1000).toISOString();
-  database
-    .prepare(`
-      UPDATE music_connections SET access_token_encrypted = ?, refresh_token_encrypted = ?,
-        token_expires_at = ?, scopes = ?, updated_at = ? WHERE id = ?
-    `)
-    .run(
+  await database.query(
+    `
+      UPDATE music_connections SET access_token_encrypted = $1, refresh_token_encrypted = $2,
+        token_expires_at = $3, scopes = $4, updated_at = now() WHERE id = $5
+    `,
+    [
       encryptSecret(token.access_token, config.encryptionKey),
       refreshToken,
       expiresAt,
       token.scope,
-      new Date().toISOString(),
       connection.id,
-    );
+    ],
+  );
   return token.access_token;
 }
 
 export async function syncSpotify(
-  database: SqliteDatabase,
+  database: DatabasePool,
   config: AppConfig,
   userId: string,
 ): Promise<{ processed: number; awarded: number; rejected: number; duplicate: number }> {
-  const connection = database
-    .prepare(`
+  const connectionResult = await database.query<ConnectionRow>(
+    `
       SELECT id, access_token_encrypted, refresh_token_encrypted, token_expires_at, last_cursor
-      FROM music_connections WHERE user_id = ? AND provider = 'spotify' AND status = 'active'
-    `)
-    .get(userId) as ConnectionRow | undefined;
+      FROM music_connections WHERE user_id = $1 AND provider = 'spotify' AND status = 'active'
+    `,
+    [userId],
+  );
+  const connection = connectionResult.rows[0];
   if (!connection) throw new AppError(409, "SPOTIFY_NOT_CONNECTED", "Spotify não está conectado");
 
   const token = await validAccessToken(database, config, connection);
@@ -267,7 +285,7 @@ export async function syncSpotify(
     const artistId = item.track.artists[0]?.id;
     if (!item.track.id || !artistId) continue;
     results.push(
-      recordListeningEvent(database, userId, {
+      await recordListeningEvent(database, userId, {
         provider: "spotify",
         providerTrackId: item.track.id,
         providerArtistId: artistId,
@@ -278,9 +296,10 @@ export async function syncSpotify(
   const cursor = recent.cursors?.after ?? chronologicalItems.at(-1)?.played_at;
   if (cursor) {
     const cursorValue = /^\d+$/.test(cursor) ? cursor : String(new Date(cursor).getTime());
-    database
-      .prepare("UPDATE music_connections SET last_cursor = ?, updated_at = ? WHERE id = ?")
-      .run(cursorValue, new Date().toISOString(), connection.id);
+    await database.query(
+      "UPDATE music_connections SET last_cursor = $1, updated_at = now() WHERE id = $2",
+      [cursorValue, connection.id],
+    );
   }
   return {
     processed: results.length,
@@ -290,25 +309,43 @@ export async function syncSpotify(
   };
 }
 
-export function listConnections(database: SqliteDatabase, userId: string): unknown[] {
-  return database
-    .prepare(`
-      SELECT provider, provider_user_id AS providerUserId, scopes, status,
-             last_cursor AS lastCursor, created_at AS createdAt, updated_at AS updatedAt
-      FROM music_connections WHERE user_id = ? ORDER BY provider
-    `)
-    .all(userId);
+export async function listConnections(database: Queryable, userId: string): Promise<unknown[]> {
+  const result = await database.query<{
+    provider: string;
+    provider_user_id: string | null;
+    scopes: string;
+    status: string;
+    last_cursor: string | null;
+    created_at: Date | string;
+    updated_at: Date | string;
+  }>(
+    `
+      SELECT provider, provider_user_id, scopes, status, last_cursor, created_at, updated_at
+      FROM music_connections WHERE user_id = $1 ORDER BY provider
+    `,
+    [userId],
+  );
+  return result.rows.map((row) => ({
+    provider: row.provider,
+    providerUserId: row.provider_user_id,
+    scopes: row.scopes,
+    status: row.status,
+    lastCursor: row.last_cursor,
+    createdAt: new Date(row.created_at).toISOString(),
+    updatedAt: new Date(row.updated_at).toISOString(),
+  }));
 }
 
-export function disconnectProvider(
-  database: SqliteDatabase,
+export async function disconnectProvider(
+  database: Queryable,
   userId: string,
   provider: string,
-): void {
-  const result = database
-    .prepare("DELETE FROM music_connections WHERE user_id = ? AND provider = ?")
-    .run(userId, provider);
-  if (result.changes === 0) {
+): Promise<void> {
+  const result = await database.query(
+    "DELETE FROM music_connections WHERE user_id = $1 AND provider = $2",
+    [userId, provider],
+  );
+  if (result.rowCount === 0) {
     throw new AppError(404, "CONNECTION_NOT_FOUND", "Conexão musical não encontrada");
   }
 }

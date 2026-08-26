@@ -1,16 +1,22 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 
+const optionalEnvironmentValue = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().min(1).optional(),
+);
+
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   HOST: z.string().default("127.0.0.1"),
   PORT: z.coerce.number().int().min(1).max(65535).default(3333),
-  DATABASE_PATH: z.string().default("./data/radar.sqlite"),
+  DATABASE_URL: optionalEnvironmentValue,
+  DATABASE_SSL: z.enum(["true", "false"]).default("true"),
   CORS_ORIGINS: z.string().default("http://127.0.0.1:5173"),
   TRUST_PROXY_CIDRS: z.string().default(""),
-  JWT_SECRET: z.string().min(32).optional(),
-  TOKEN_ENCRYPTION_KEY: z.string().optional(),
-  SPOTIFY_CLIENT_ID: z.string().optional(),
+  SUPABASE_URL: z.string().url().default("https://fxhvbmidhgdmrdyrywqw.supabase.co"),
+  TOKEN_ENCRYPTION_KEY: optionalEnvironmentValue,
+  SPOTIFY_CLIENT_ID: optionalEnvironmentValue,
   SPOTIFY_REDIRECT_URI: z
     .string()
     .url()
@@ -22,17 +28,17 @@ export type AppConfig = {
   nodeEnv: "development" | "test" | "production";
   host: string;
   port: number;
-  databasePath: string;
+  databaseUrl: string;
+  databaseSsl: boolean;
   corsOrigins: string[];
   trustedProxies: string[];
-  jwtSecret: Uint8Array;
+  supabaseUrl: string;
   encryptionKey: Buffer;
   spotifyClientId?: string;
   spotifyRedirectUri: string;
   appDeepLink: string;
 };
 
-const developmentJwtSecret = "radar-development-secret-change-before-production";
 const developmentEncryptionKey = createHash("sha256")
   .update("radar-development-encryption-key")
   .digest();
@@ -43,14 +49,14 @@ function isLoopbackHost(host: string): boolean {
 
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
   const env = schema.parse(source);
-
-  if (env.NODE_ENV === "production" && (!env.JWT_SECRET || !env.TOKEN_ENCRYPTION_KEY)) {
-    throw new Error("JWT_SECRET and TOKEN_ENCRYPTION_KEY are required in production");
+  if (!env.DATABASE_URL) {
+    throw new Error("DATABASE_URL is required; use the Supabase connection string");
   }
-  if (!isLoopbackHost(env.HOST) && (!env.JWT_SECRET || !env.TOKEN_ENCRYPTION_KEY)) {
-    throw new Error(
-      "JWT_SECRET and TOKEN_ENCRYPTION_KEY are required when HOST is not loopback",
-    );
+  if (env.NODE_ENV === "production" && !env.TOKEN_ENCRYPTION_KEY) {
+    throw new Error("TOKEN_ENCRYPTION_KEY is required in production");
+  }
+  if (!isLoopbackHost(env.HOST) && !env.TOKEN_ENCRYPTION_KEY) {
+    throw new Error("TOKEN_ENCRYPTION_KEY is required when HOST is not loopback");
   }
 
   let encryptionKey = developmentEncryptionKey;
@@ -66,12 +72,13 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     nodeEnv: env.NODE_ENV,
     host: env.HOST,
     port: env.PORT,
-    databasePath: env.DATABASE_PATH,
+    databaseUrl: env.DATABASE_URL,
+    databaseSsl: env.DATABASE_SSL === "true",
     corsOrigins: env.CORS_ORIGINS.split(",").map((value) => value.trim()).filter(Boolean),
     trustedProxies: env.TRUST_PROXY_CIDRS.split(",")
       .map((value) => value.trim())
       .filter(Boolean),
-    jwtSecret: new TextEncoder().encode(env.JWT_SECRET ?? developmentJwtSecret),
+    supabaseUrl: env.SUPABASE_URL.replace(/\/$/, ""),
     encryptionKey,
     ...(spotifyClientId ? { spotifyClientId } : {}),
     spotifyRedirectUri: env.SPOTIFY_REDIRECT_URI,

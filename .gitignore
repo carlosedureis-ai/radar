@@ -13,6 +13,8 @@ backend/build/
 backend/dist/
 coverage/
 *.tsbuildinfo
+supabase/.temp/
+supabase/.branches/
 
 # Dados locais
 backend/data/
