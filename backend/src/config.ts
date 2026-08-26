@@ -12,7 +12,7 @@ const schema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3333),
   DATABASE_URL: optionalEnvironmentValue,
   DATABASE_SSL: z.enum(["true", "false"]).default("true"),
-  CORS_ORIGINS: z.string().default("http://127.0.0.1:5173"),
+  CORS_ORIGINS: z.string().default("http://127.0.0.1:5174"),
   TRUST_PROXY_CIDRS: z.string().default(""),
   SUPABASE_URL: z.string().url().default("https://fxhvbmidhgdmrdyrywqw.supabase.co"),
   TOKEN_ENCRYPTION_KEY: optionalEnvironmentValue,
@@ -21,7 +21,7 @@ const schema = z.object({
     .string()
     .url()
     .default("http://127.0.0.1:3333/v1/music/spotify/callback"),
-  APP_DEEP_LINK: z.string().default("radar://music-connected"),
+  APP_DEEP_LINK: z.string().default("http://127.0.0.1:5174/conexoes"),
 });
 
 export type AppConfig = {

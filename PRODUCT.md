@@ -8,7 +8,7 @@ web
 
 ## Users
 
-Ouvintes de diferentes idades, gêneros musicais e níveis de envolvimento, desde quem escuta casualmente até fãs, colecionadores, curadores e descobridores. O primeiro uso é pensado para celular, enquanto a implementação final entre PWA e aplicativo nativo permanece uma decisão aberta.
+Ouvintes de diferentes idades, gêneros musicais e níveis de envolvimento, desde quem escuta casualmente até fãs, colecionadores, curadores e descobridores. O primeiro uso é pensado para celular e o MVP será entregue como PWA responsiva.
 
 ## Product Purpose
 
@@ -25,6 +25,7 @@ O usuário escuta em serviços externos, sincroniza o histórico com consentimen
 ## Capabilities and Constraints
 
 - Identidade e sessões são fornecidas pelo Supabase Auth; dados do produto vivem em PostgreSQL.
+- O MVP cliente é uma PWA React/Vite, com aplicativo nativo reavaliado depois da validação do produto.
 - O cliente não grava escutas, XP, cartas ou conexões diretamente no banco.
 - Inclui artistas conhecidos e emergentes.
 - Cartas evoluem principalmente por escuta externa verificada, complementada por missões e ações sociais.

@@ -3,12 +3,14 @@
 Rede social musical em desenvolvimento na qual escutas autorizadas em serviços externos viram
 progresso, cartas evolutivas de artistas e histórias compartilháveis. O Radar não reproduz música.
 
-> **Status:** backend migrado para Supabase Auth e PostgreSQL, aguardando aplicação da migration no
-> projeto remoto. O nome Radar continua provisório e não há parceria confirmada com plataformas.
+> **Status:** backend e PWA preparados para Supabase Auth e PostgreSQL, aguardando aplicação da
+> migration e chaves locais do projeto remoto. O nome Radar continua provisório e não há parceria
+> confirmada com plataformas.
 
 ## O que existe neste repositório
 
 - Backend TypeScript/Fastify com Supabase Auth, PostgreSQL, Spotify OAuth/PKCE, XP e cartas.
+- PWA React/Vite com cadastro, painel, cartas, escutas, conexões, conta e compartilhamento público.
 - Testes de integração, contrato OpenAPI e controles de segurança.
 - Identidade visual “Camadas Vivas”, logos, tokens, fontes e guia interativo.
 - Documentos de produto e design que registram as decisões aprovadas.
@@ -18,6 +20,7 @@ progresso, cartas evolutivas de artistas e histórias compartilháveis. O Radar 
 ```text
 .
 ├── backend/                  API e testes
+├── frontend/                 PWA React/Vite
 ├── supabase/migrations/      schema PostgreSQL versionado
 ├── outputs/                  identidade visual e ativos versionáveis
 ├── .impeccable/design.json   sidecar do sistema visual
@@ -48,6 +51,21 @@ pnpm check
 pnpm build
 pnpm audit --prod
 ```
+
+## Rodar a PWA no Windows
+
+```powershell
+cd frontend
+Copy-Item .env.example .env
+# Preencha VITE_SUPABASE_PUBLISHABLE_KEY com a chave publica do projeto.
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Abra `http://127.0.0.1:5174`. Depois que `backend/.env` e `frontend/.env` estiverem configurados,
+você também pode executar `iniciar-radar.bat` para iniciar os dois serviços.
+
+Valide com `pnpm check`, `pnpm build` e `pnpm audit --prod` dentro de `frontend/`.
 
 ## Supabase e configuração musical
 

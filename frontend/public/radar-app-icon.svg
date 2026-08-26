@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Ícone do aplicativo Radar</title>
+  <desc id="desc">Símbolo Radar em marfim e lima sobre fundo escuro.</desc>
+  <rect width="512" height="512" rx="112" fill="#181A20"/>
+  <g transform="translate(80 80) scale(3.6667)">
+    <g fill="none" stroke="#F4F1E8" stroke-width="8" stroke-linecap="butt">
+      <circle cx="48" cy="48" r="36" pathLength="100" stroke-dasharray="23 8 30 7 20 12" transform="rotate(-20 48 48)"/>
+      <circle cx="48" cy="48" r="24" pathLength="100" stroke-dasharray="28 10 34 9 11 8" transform="rotate(12 48 48)"/>
+      <circle cx="48" cy="48" r="13" pathLength="100" stroke-dasharray="46 18 22 14" transform="rotate(-48 48 48)"/>
+    </g>
+    <circle cx="48" cy="48" r="6" fill="#F4F1E8"/>
+    <path d="M52 44 76 21h10L57 50Z" fill="#D8FF52"/>
+  </g>
+</svg>

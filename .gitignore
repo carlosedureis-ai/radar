@@ -11,6 +11,7 @@
 **/.pnpm-store/
 backend/build/
 backend/dist/
+frontend/dist/
 coverage/
 *.tsbuildinfo
 supabase/.temp/
