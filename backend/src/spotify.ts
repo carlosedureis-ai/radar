@@ -46,6 +46,29 @@ type RecentlyPlayedResponse = {
   cursors?: { after?: string };
 };
 
+export type SpotifySyncSummary = {
+  processed: number;
+  awarded: number;
+  rejected: number;
+  duplicate: number;
+  xpAwarded: number;
+  artistsAdvanced: number;
+};
+
+export function summarizeSyncResults(results: ListenResult[]): SpotifySyncSummary {
+  const awarded = results.filter((result) => result.status === "awarded");
+  return {
+    processed: results.length,
+    awarded: awarded.length,
+    rejected: results.filter((result) => result.status === "rejected").length,
+    duplicate: results.filter((result) => result.status === "duplicate").length,
+    xpAwarded: awarded.reduce((total, result) => total + result.xpAwarded, 0),
+    artistsAdvanced: new Set(
+      awarded.flatMap((result) => (result.artistId ? [result.artistId] : [])),
+    ).size,
+  };
+}
+
 function requireSpotifyConfig(config: AppConfig): string {
   if (!config.spotifyClientId) {
     throw new AppError(
@@ -259,7 +282,7 @@ export async function syncSpotify(
   database: DatabasePool,
   config: AppConfig,
   userId: string,
-): Promise<{ processed: number; awarded: number; rejected: number; duplicate: number }> {
+): Promise<SpotifySyncSummary> {
   const connectionResult = await database.query<ConnectionRow>(
     `
       SELECT id, access_token_encrypted, refresh_token_encrypted, token_expires_at, last_cursor
@@ -302,12 +325,7 @@ export async function syncSpotify(
       [cursorValue, connection.id],
     );
   }
-  return {
-    processed: results.length,
-    awarded: results.filter((result) => result.status === "awarded").length,
-    rejected: results.filter((result) => result.status === "rejected").length,
-    duplicate: results.filter((result) => result.status === "duplicate").length,
-  };
+  return summarizeSyncResults(results);
 }
 
 export async function refreshSpotifyArtistCandidates(

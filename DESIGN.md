@@ -254,6 +254,12 @@ A carta de artista é a assinatura material do sistema. Cada nível mantém imag
 
 O nível de conta usa número condensado dominante, barra de progresso legível, texto numérico explícito e selos de especialização. A barra nunca comunica estado apenas pela cor: exponha rótulo, valor e atributos acessíveis de progresso.
 
+### Jornada Radar
+
+A jornada organiza marcos verificáveis como um capítulo material: cabeçalho em papel, próxima camada dominante em ultramarino e trilha cronológica adjacente. Chartreuse confirma conquista; contorno e texto distinguem marco atual e futuro sem depender da cor. Mostre sempre valor atual, meta e ação seguinte. Marcos registram progresso existente e não devem sugerir prêmio aleatório ou XP adicional.
+
+Após uma sincronização, use um recibo compacto em camadas para informar XP confirmado, artistas que avançaram e eventos analisados. A entrada mecânica de 180ms é reservada a esse momento de mudança real; sincronizações sem progresso usam linguagem neutra, sem celebração artificial.
+
 ### Motion
 
 Estados simples respondem em 120ms; entrada de uma nova camada acontece em 180ms com dois passos mecânicos (`steps(2, end)`). Movimento revela mudança de estado e oferece compartilhamento, sem celebrar cada faixa. `prefers-reduced-motion` recebe troca instantânea e nenhuma translação.

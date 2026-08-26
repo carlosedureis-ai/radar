@@ -79,6 +79,22 @@ export type Progression = {
     level: number;
   };
   rules: ProgressionRule[];
+  journey: JourneyStats;
+};
+
+export type JourneyStats = {
+  qualifiedListenCount: number;
+  artistCount: number;
+  highestCardLevel: number;
+};
+
+export type SpotifySyncResult = {
+  processed: number;
+  awarded: number;
+  rejected: number;
+  duplicate: number;
+  xpAwarded: number;
+  artistsAdvanced: number;
 };
 
 export type PublicShare = {

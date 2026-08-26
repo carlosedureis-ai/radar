@@ -4,6 +4,7 @@ import { AccountProgress } from "../components/AccountProgress";
 import { ArtistCardView } from "../components/ArtistCardView";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingView } from "../components/LoadingView";
+import { JourneyPanel } from "../components/JourneyPanel";
 import { useRadarData } from "../data/RadarDataProvider";
 
 export function HomePage() {
@@ -23,6 +24,8 @@ export function HomePage() {
       </header>
 
       {progression && <AccountProgress progression={progression} />}
+
+      {progression && <JourneyPanel stats={progression.journey} />}
 
       {!connected && (
         <EmptyState

@@ -8,6 +8,7 @@ import type {
   Progression,
   RadarSnapshot,
   RadarUser,
+  SpotifySyncResult,
 } from "../types";
 
 type RadarDataContextValue = RadarSnapshot & {
@@ -16,7 +17,7 @@ type RadarDataContextValue = RadarSnapshot & {
   refreshing: boolean;
   refresh(): Promise<void>;
   connectSpotify(): Promise<void>;
-  syncSpotify(): Promise<{ processed: number; awarded: number; rejected: number; duplicate: number }>;
+  syncSpotify(): Promise<SpotifySyncResult>;
   disconnectProvider(provider: string): Promise<void>;
   createShare(artistId: string): Promise<string>;
 };
@@ -83,7 +84,7 @@ export function RadarDataProvider({ children }: { children: ReactNode }) {
       },
       async syncSpotify() {
         const response = await apiRequest<{
-          result: { processed: number; awarded: number; rejected: number; duplicate: number };
+          result: SpotifySyncResult;
         }>("/v1/music/spotify/sync", token, { method: "POST" });
         await refresh();
         return response.result;

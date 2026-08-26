@@ -444,6 +444,21 @@ export async function getProgression(database: Queryable, userId: string): Promi
       FROM progression_rules ORDER BY scope, level
     `,
   );
+  const [listenStats, cardStats] = await Promise.all([
+    database.query<{ qualified_listen_count: number }>(
+      "SELECT COUNT(*)::int AS qualified_listen_count FROM listening_events WHERE user_id = $1 AND qualified = true",
+      [userId],
+    ),
+    database.query<{ artist_count: number; highest_card_level: number }>(
+      `
+        SELECT COUNT(*)::int AS artist_count, COALESCE(MAX(level), 0)::int AS highest_card_level
+        FROM artist_cards WHERE user_id = $1
+      `,
+      [userId],
+    ),
+  ]);
+  const listenJourney = listenStats.rows[0];
+  const cardJourney = cardStats.rows[0];
   return {
     account: {
       id: account.id,
@@ -458,6 +473,11 @@ export async function getProgression(database: Queryable, userId: string): Promi
       minXp: Number(row.min_xp),
       provisional: row.provisional,
     })),
+    journey: {
+      qualifiedListenCount: Number(listenJourney?.qualified_listen_count ?? 0),
+      artistCount: Number(cardJourney?.artist_count ?? 0),
+      highestCardLevel: Number(cardJourney?.highest_card_level ?? 0),
+    },
   };
 }
 

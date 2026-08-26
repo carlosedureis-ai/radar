@@ -14,6 +14,7 @@ import { loadConfig, type AppConfig } from "../src/config.js";
 import type { DatabasePool } from "../src/db.js";
 import { AppError } from "../src/errors.js";
 import { recordListeningEvent } from "../src/progression.js";
+import { summarizeSyncResults } from "../src/spotify.js";
 
 const testConfig: AppConfig = {
   nodeEnv: "test",
@@ -361,6 +362,31 @@ describe("Radar API with Supabase Auth and PostgreSQL", () => {
       headers: auth(user.accessToken),
     });
     expect(me.json()).toMatchObject({ accountXp: 15, accountLevel: 1 });
+    const progression = await backend.app.inject({
+      method: "GET",
+      url: "/v1/progression",
+      headers: auth(user.accessToken),
+    });
+    expect(progression.json()).toMatchObject({
+      journey: { qualifiedListenCount: 1, artistCount: 1, highestCardLevel: 1 },
+    });
+  });
+
+  it("summarizes only verified progress after a Spotify sync", () => {
+    expect(summarizeSyncResults([
+      { status: "awarded", xpAwarded: 15, artistId: "artist-a" },
+      { status: "awarded", xpAwarded: 10, artistId: "artist-a" },
+      { status: "awarded", xpAwarded: 10, artistId: "artist-b" },
+      { status: "rejected", xpAwarded: 0, reason: "repeat-too-soon" },
+      { status: "duplicate", xpAwarded: 0, reason: "duplicate" },
+    ])).toEqual({
+      processed: 5,
+      awarded: 3,
+      rejected: 1,
+      duplicate: 1,
+      xpAwarded: 35,
+      artistsAdvanced: 2,
+    });
   });
 
   it("rejects rapid repeated tracks while retaining the audit event", async () => {

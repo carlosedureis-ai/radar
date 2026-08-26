@@ -18,7 +18,15 @@ export function AccountProgress({ progression }: { progression: Progression }) {
       <div className="level-number" aria-label={`Nível ${progression.account.level}`}>
         {String(progression.account.level).padStart(2, "0")}
       </div>
-      <div className="progress-track" aria-label={progressLabel}>
+      <div
+        className="progress-track"
+        role="progressbar"
+        aria-label="Progresso da conta"
+        aria-valuemin={window.current?.minXp ?? 0}
+        aria-valuemax={window.next?.minXp ?? progression.account.xp}
+        aria-valuenow={progression.account.xp}
+        aria-valuetext={progressLabel}
+      >
         <span style={{ width: `${window.percent}%` }} />
       </div>
       <p className="progress-copy">{progressLabel}</p>

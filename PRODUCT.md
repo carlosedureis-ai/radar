@@ -31,6 +31,9 @@ O usuário escuta em serviços externos, sincroniza o histórico com consentimen
 - Cartas evoluem principalmente por escuta externa verificada, complementada por missões e ações sociais.
 - A conta possui progressão própria, especializações, temporadas e prestígio.
 - Cartas e marcos geram peças compartilháveis e comparações entre amigos.
+- A Jornada Radar apresenta marcos derivados apenas de escutas válidas e cartas persistidas: primeira carta, três artistas na coleção, dez escutas válidas e primeira carta no nível 2.
+- No MVP, marcos registram a trajetória e não concedem XP adicional; os limiares são provisórios e devem ser validados com uso real antes de expansão.
+- Cada sincronização informa eventos analisados, XP efetivamente concedido e quantos artistas avançaram.
 - O produto não reproduz música e depende das permissões e limites das APIs conectadas.
 - Progressão deve limitar repetições artificiais, automação e compra de vantagem.
 - Uma identidade de provedor musical só pode alimentar uma conta Radar por vez.
