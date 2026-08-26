@@ -25,9 +25,11 @@ Os valores de XP e nomes dos níveis continuam **provisórios** e são registrad
 3. Salve a URL somente em `DATABASE_URL` dentro do `.env` e substitua `[YOUR-PASSWORD]` pela
    mesma senha definida em **Database Settings > Reset database password**. Se ela tiver símbolos
    reservados de URL, aplique percent-encoding.
-4. Mantenha `DATABASE_SSL=true` e `DATABASE_SSL_CA_PATH=certs/prod-ca-2021.crt`. O certificado
+4. Use `DATABASE_CONNECTION_MODE=session` em redes somente IPv4. Se a conexão direta IPv6 tiver
+   sido validada, use `direct`; o backend converte a URL do pooler sem expor a senha.
+5. Mantenha `DATABASE_SSL=true` e `DATABASE_SSL_CA_PATH=certs/prod-ca-2021.crt`. O certificado
    público oficial permite validar a identidade do servidor, sem desativar TLS.
-5. Gere `TOKEN_ENCRYPTION_KEY` com o comando indicado no `.env.example`.
+6. Gere `TOKEN_ENCRYPTION_KEY` com o comando indicado no `.env.example`.
 
 O projeto Supabase configurado é `fxhvbmidhgdmrdyrywqw`. O Project ID e a URL pública não são
 segredos; senha do banco, token de serviço e `DATABASE_URL` nunca devem ser versionados.
@@ -45,6 +47,12 @@ Depois valide a conexão:
 
 ```powershell
 pnpm db:check
+```
+
+Para atualizar a senha local sem exibi-la no terminal ou no histórico:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/atualizar-senha-banco.ps1
 ```
 
 Também é possível executar `supabase init`, vincular o projeto pela CLI e usar `supabase db push`.
@@ -94,8 +102,9 @@ Sem `SPOTIFY_CLIENT_ID`, a rota de autorização retorna `503 SPOTIFY_NOT_CONFIG
 - `pnpm check`: typecheck e testes.
 - `pnpm db:check`: valida a conexão configurada sem alterar dados.
 
-Se `db:check` retornar `28P01`, a rede e o TLS chegaram ao PostgreSQL, mas a senha no
-`DATABASE_URL` não corresponde à senha atual do projeto.
+Se `db:check` retornar `28P01`, a rede e o TLS chegaram ao PostgreSQL. Primeiro confirme que a
+senha no `DATABASE_URL` corresponde à senha atual do projeto. Se a conexão direta funcionar mas o
+pooler recusar a mesma credencial, valide IPv6 e use `DATABASE_CONNECTION_MODE=direct`.
 
 ## Antes da produção
 

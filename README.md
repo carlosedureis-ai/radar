@@ -3,9 +3,8 @@
 Rede social musical em desenvolvimento na qual escutas autorizadas em serviços externos viram
 progresso, cartas evolutivas de artistas e histórias compartilháveis. O Radar não reproduz música.
 
-> **Status:** migration aplicada e validada no Supabase, PWA com Auth configurado e backend com
-> TLS verificado pelo certificado oficial. A validação local aguarda apenas a senha PostgreSQL
-> corresponder à senha atual do projeto. O nome Radar continua provisório e não há parceria
+> **Status:** migration aplicada e validada no Supabase, PWA com Auth configurado e backend
+> conectado ao PostgreSQL por TLS verificado. O nome Radar continua provisório e não há parceria
 > confirmada com plataformas.
 
 ## O que existe neste repositório
@@ -72,9 +71,10 @@ Valide com `pnpm check`, `pnpm build` e `pnpm audit --prod` dentro de `frontend/
 
 O backend exige `DATABASE_URL` do Supabase no arquivo local `backend/.env`, usa
 `DATABASE_SSL_CA_PATH` para verificar o certificado do servidor e nunca desativa TLS para contornar
-erros. Cadastro e sessões são gerenciados pelo Supabase Auth. A conexão musical real exige também
-`SPOTIFY_CLIENT_ID` e uma redirect URI cadastrada no painel do Spotify. Nunca coloque senhas,
-chaves ou tokens no Git.
+erros. `DATABASE_CONNECTION_MODE` seleciona o pooler de sessão ou a conexão direta quando IPv6
+está disponível. Cadastro e sessões são gerenciados pelo Supabase Auth. A conexão musical real
+exige também `SPOTIFY_CLIENT_ID` e uma redirect URI cadastrada no painel do Spotify. Nunca coloque
+senhas, chaves ou tokens no Git.
 
 ## Identidade visual
 

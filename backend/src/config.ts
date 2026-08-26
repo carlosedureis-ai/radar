@@ -12,6 +12,7 @@ const schema = z.object({
   HOST: z.string().default("127.0.0.1"),
   PORT: z.coerce.number().int().min(1).max(65535).default(3333),
   DATABASE_URL: optionalEnvironmentValue,
+  DATABASE_CONNECTION_MODE: z.enum(["session", "direct"]).default("session"),
   DATABASE_SSL: z.enum(["true", "false"]).default("true"),
   DATABASE_SSL_CA_PATH: optionalEnvironmentValue,
   CORS_ORIGINS: z.string().default("http://127.0.0.1:5174"),
@@ -50,6 +51,30 @@ function isLoopbackHost(host: string): boolean {
   return host === "127.0.0.1" || host === "::1" || host.toLowerCase() === "localhost";
 }
 
+export function resolveDatabaseUrl(
+  databaseUrl: string,
+  mode: "session" | "direct",
+): string {
+  if (mode === "session") return databaseUrl;
+
+  const url = new URL(databaseUrl);
+  if (url.hostname.startsWith("db.") && url.hostname.endsWith(".supabase.co")) {
+    return databaseUrl;
+  }
+
+  const projectRef = /^postgres\.([a-z0-9]+)$/i.exec(decodeURIComponent(url.username))?.[1];
+  if (!projectRef || !url.hostname.endsWith(".pooler.supabase.com")) {
+    throw new Error(
+      "DATABASE_CONNECTION_MODE=direct requires a Supabase direct or session-pooler URL",
+    );
+  }
+
+  url.username = "postgres";
+  url.hostname = `db.${projectRef}.supabase.co`;
+  url.port = "5432";
+  return url.toString();
+}
+
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
   const env = schema.parse(source);
   if (!env.DATABASE_URL) {
@@ -78,7 +103,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     nodeEnv: env.NODE_ENV,
     host: env.HOST,
     port: env.PORT,
-    databaseUrl: env.DATABASE_URL,
+    databaseUrl: resolveDatabaseUrl(env.DATABASE_URL, env.DATABASE_CONNECTION_MODE),
     databaseSsl: env.DATABASE_SSL === "true",
     ...(databaseSslCa ? { databaseSslCa } : {}),
     corsOrigins: env.CORS_ORIGINS.split(",").map((value) => value.trim()).filter(Boolean),
