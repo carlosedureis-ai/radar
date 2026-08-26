@@ -3,9 +3,9 @@
 Rede social musical em desenvolvimento na qual escutas autorizadas em serviços externos viram
 progresso, cartas evolutivas de artistas e histórias compartilháveis. O Radar não reproduz música.
 
-> **Status:** backend e PWA preparados para Supabase Auth e PostgreSQL, aguardando aplicação da
-> migration e chaves locais do projeto remoto. O nome Radar continua provisório e não há parceria
-> confirmada com plataformas.
+> **Status:** migration aplicada e validada no Supabase, PWA com Auth configurado e backend
+> aguardando somente a senha PostgreSQL no arquivo local ignorado pelo Git. O nome Radar continua
+> provisório e não há parceria confirmada com plataformas.
 
 ## O que existe neste repositório
 
